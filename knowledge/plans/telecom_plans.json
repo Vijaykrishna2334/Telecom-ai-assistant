@@ -1,0 +1,62 @@
+{
+  "plans": [
+    {
+      "id": "basic-30",
+      "name": "Basic 30",
+      "price": 30,
+      "data": "5GB",
+      "calls": "Unlimited",
+      "sms": "100",
+      "features": [
+        "Voicemail",
+        "Caller ID"
+      ],
+      "description": "Perfect for light users who need basic connectivity"
+    },
+    {
+      "id": "standard-50",
+      "name": "Standard 50",
+      "price": 50,
+      "data": "20GB",
+      "calls": "Unlimited",
+      "sms": "Unlimited",
+      "features": [
+        "Voicemail",
+        "Caller ID",
+        "Hotspot 5GB"
+      ],
+      "description": "Great for everyday use with plenty of data"
+    },
+    {
+      "id": "premium-80",
+      "name": "Premium 80",
+      "price": 80,
+      "data": "Unlimited",
+      "calls": "Unlimited",
+      "sms": "Unlimited",
+      "features": [
+        "Voicemail",
+        "Caller ID",
+        "Hotspot Unlimited",
+        "International Calls 100min"
+      ],
+      "description": "Ultimate plan with unlimited everything"
+    },
+    {
+      "id": "family-100",
+      "name": "Family 100",
+      "price": 100,
+      "data": "Shared 50GB",
+      "calls": "Unlimited (4 lines)",
+      "sms": "Unlimited (4 lines)",
+      "features": [
+        "Voicemail",
+        "Caller ID",
+        "Hotspot 10GB per line",
+        "International Calls 50min per line",
+        "Parental Controls"
+      ],
+      "description": "Perfect family plan with 4 lines included"
+    }
+  ]
+}
