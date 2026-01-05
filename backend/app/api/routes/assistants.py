@@ -1,7 +1,7 @@
 """
 Assistant management endpoints.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, status
@@ -42,7 +42,7 @@ async def list_assistants() -> List[Assistant]:
             type="text",
             description="General customer support assistant",
             is_active=True,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         ),
         Assistant(
             id=2,
@@ -50,7 +50,7 @@ async def list_assistants() -> List[Assistant]:
             type="voice",
             description="Voice-enabled customer support assistant",
             is_active=True,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         ),
     ]
 

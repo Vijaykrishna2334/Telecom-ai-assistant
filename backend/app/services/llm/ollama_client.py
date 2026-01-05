@@ -1,6 +1,7 @@
 """
 Ollama client for LLM integration.
 """
+import json
 from typing import Any, AsyncGenerator, List, Optional
 
 import httpx
@@ -99,8 +100,6 @@ class OllamaClient:
             response.raise_for_status()
             async for line in response.aiter_lines():
                 if line:
-                    import json
-
                     data = json.loads(line)
                     if "response" in data:
                         yield data["response"]
@@ -166,8 +165,6 @@ class OllamaClient:
             response.raise_for_status()
             async for line in response.aiter_lines():
                 if line:
-                    import json
-
                     data = json.loads(line)
                     if "message" in data and "content" in data["message"]:
                         yield data["message"]["content"]

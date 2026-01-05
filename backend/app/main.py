@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import assistants, calls, chat, health, voice
+from app.api.websockets import chat_ws, voice_ws
 from app.core import configure_logging, get_logger, settings
 from app.models import close_db, init_db
 from app.services.cache import cache_service
@@ -108,6 +109,10 @@ app.include_router(chat.router, prefix=settings.api_prefix, tags=["Chat"])
 app.include_router(voice.router, prefix=settings.api_prefix, tags=["Voice"])
 app.include_router(assistants.router, prefix=settings.api_prefix, tags=["Assistants"])
 app.include_router(calls.router, prefix=settings.api_prefix, tags=["Plans"])
+
+# Include WebSocket routers
+app.include_router(chat_ws.router, tags=["WebSocket"])
+app.include_router(voice_ws.router, tags=["WebSocket"])
 
 
 @app.get("/")

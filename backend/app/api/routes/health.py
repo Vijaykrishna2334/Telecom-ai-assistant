@@ -1,7 +1,7 @@
 """
 Health check and readiness endpoints.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, status
 from app.core.config import settings
@@ -28,7 +28,7 @@ async def health_check() -> HealthCheck:
     return HealthCheck(
         status="healthy",
         version=settings.api_version,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
     )
 
 
@@ -58,5 +58,5 @@ async def readiness_check() -> ReadinessCheck:
     return ReadinessCheck(
         status=status_code,
         services=services,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
     )

@@ -1,6 +1,8 @@
 """
 Voice session API endpoints.
 """
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException, status
 from app.core.logging import get_logger
 from app.core.security import generate_session_id
@@ -41,7 +43,7 @@ async def create_voice_session(
             audio_format=request.audio_format,
             sample_rate=request.sample_rate,
             duration_seconds=0.0,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
     except Exception as e:
@@ -71,7 +73,6 @@ async def get_voice_session(session_id: str) -> VoiceSessionResponse:
     logger.info("Getting voice session", session_id=session_id)
 
     # Mock response
-    from datetime import datetime
     return VoiceSessionResponse(
         id=1,
         conversation_id=1,
@@ -79,7 +80,7 @@ async def get_voice_session(session_id: str) -> VoiceSessionResponse:
         audio_format="wav",
         sample_rate=16000,
         duration_seconds=0.0,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
 
 

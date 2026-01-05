@@ -1,6 +1,7 @@
 """
 Telecom plans API endpoints.
 """
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, HTTPException, status
@@ -32,7 +33,6 @@ async def list_plans() -> List[PlanResponse]:
         plans_data = result.get("plans", [])
 
         # Convert to response model
-        from datetime import datetime
         plans = [
             PlanResponse(
                 id=i + 1,
@@ -44,7 +44,7 @@ async def list_plans() -> List[PlanResponse]:
                 sms=p["sms"],
                 features=p["features"],
                 is_active=True,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
             )
             for i, p in enumerate(plans_data)
         ]
@@ -88,7 +88,6 @@ async def get_plan(plan_id: str) -> PlanResponse:
             )
 
         plan_data = plans_data[0]
-        from datetime import datetime
         return PlanResponse(
             id=1,
             plan_id=plan_data["id"],
@@ -99,7 +98,7 @@ async def get_plan(plan_id: str) -> PlanResponse:
             sms=plan_data["sms"],
             features=plan_data["features"],
             is_active=True,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
     except HTTPException:
