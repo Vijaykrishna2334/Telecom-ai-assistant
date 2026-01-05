@@ -31,18 +31,48 @@ function App() {
     };
     setMessages(prev => [...prev, userMessage]);
 
-    // TODO: Call API to get response
-    // For now, add a placeholder response
-    setTimeout(() => {
+    // Call backend API to get response
+    try {
+      const response = await fetch('http://localhost:8080/api/v1/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: content,
+          session_id: sessionId || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await response.json();
+
+      if (data.session_id) {
+        setSessionId(data.session_id);
+      }
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'I received your message. The backend API integration is ready to process your request.',
+        content: data.message || 'Sorry, I could not process your request.',
         timestamp: new Date(),
         messageType: 'text',
       };
       setMessages(prev => [...prev, assistantMessage]);
-    }, 1000);
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, there was an error connecting to the server. Please make sure the backend is running.',
+        timestamp: new Date(),
+        messageType: 'text',
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
   };
 
   return (

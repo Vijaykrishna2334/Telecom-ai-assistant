@@ -45,13 +45,13 @@ class Settings(BaseSettings):
     # Voice Processing
     stt_model: str = "base"
     stt_device: str = "cpu"
-    tts_voice: str = "en_US-lessac-medium"
+    tts_voice: str = "en_US-amy-medium"  # Natural female voice
     tts_sample_rate: int = 22050
     vad_threshold: float = 0.5
     vad_min_speech_duration: float = 0.25
 
     # Security
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins: List[str] = ["*"]  # Allow all origins for local development
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 

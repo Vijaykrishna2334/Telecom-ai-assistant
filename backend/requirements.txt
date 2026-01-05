@@ -24,11 +24,12 @@ sentence-transformers==2.3.1
 chromadb==0.4.22
 
 # Voice Processing
-faster-whisper==0.10.0
-piper-tts==1.2.0
-silero-vad==4.0.1
-torch==2.1.2
-torchaudio==2.1.2
+faster-whisper==1.2.1  # Updated from 0.10.0 for Windows Python 3.12 compatibility
+piper-tts==1.3.0  # Updated from 1.2.0 - try latest version
+silero-vad==5.1.2
+torch==2.5.1
+torchaudio==2.5.1
+pyttsx3==2.90  # Local TTS fallback for Windows
 numpy==1.26.3
 
 # Security
@@ -37,7 +38,7 @@ passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
 
 # HTTP Client
-httpx==0.26.0
+httpx==0.25.2
 aiohttp==3.9.1
 
 # Utilities

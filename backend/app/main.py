@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import assistants, calls, chat, health, voice
-from app.api.websockets import chat_ws, voice_ws
+from app.api.websockets import chat_ws, voice_ws, realtime_voice
 from app.core import configure_logging, get_logger, settings
 from app.models import close_db, init_db
 from app.services.cache import cache_service
@@ -43,9 +43,12 @@ async def lifespan(app: FastAPI):
         await init_db()
         logger.info("Database initialized")
         
-        # Connect to Redis
-        await cache_service.connect()
-        logger.info("Cache service connected")
+        # Connect to Redis (optional - app works without it)
+        try:
+            await cache_service.connect()
+            logger.info("Cache service connected")
+        except Exception as cache_error:
+            logger.warning("Redis not available, running without cache", error=str(cache_error))
         
         # Initialize knowledge base
         await knowledge_base.initialize()
@@ -113,6 +116,7 @@ app.include_router(calls.router, prefix=settings.api_prefix, tags=["Plans"])
 # Include WebSocket routers
 app.include_router(chat_ws.router, tags=["WebSocket"])
 app.include_router(voice_ws.router, tags=["WebSocket"])
+app.include_router(realtime_voice.router, tags=["WebSocket"])
 
 
 @app.get("/")

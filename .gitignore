@@ -81,7 +81,7 @@ alembic.ini
 *.bin
 *.pt
 *.pth
-models/
+/models/
 data/
 *.wav
 *.mp3

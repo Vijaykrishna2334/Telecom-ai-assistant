@@ -43,10 +43,11 @@ async def send_message(request: ChatRequest) -> ChatResponse:
         # Get relevant context from knowledge base
         context = await knowledge_base.get_context_for_query(request.message)
 
-        # Create prompt with context
+        # Create prompt with context and history
         messages = create_chat_prompt(
             user_message=request.message,
             context=context if context else None,
+            conversation_history=request.history,
         )
 
         # Generate response from LLM
