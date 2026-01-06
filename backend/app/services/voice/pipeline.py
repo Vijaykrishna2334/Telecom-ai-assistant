@@ -3,12 +3,29 @@ Voice processing pipeline integrating STT, TTS, and VAD.
 """
 from typing import AsyncGenerator, Optional
 
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.services.voice.stt import stt_service
-from app.services.voice.tts import tts_service
 from app.services.voice.vad import vad_service
 
 logger = get_logger(__name__)
+
+
+def get_tts_service():
+    """Get TTS service based on config setting."""
+    if settings.tts_provider == "kokoro":
+        try:
+            from app.services.voice.kokoro_tts import KokoroTTSService
+            logger.info("Using Kokoro TTS provider")
+            return KokoroTTSService()
+        except ImportError as e:
+            logger.warning("Kokoro TTS not available, falling back to Piper", error=str(e))
+            from app.services.voice.tts import tts_service
+            return tts_service
+    else:
+        from app.services.voice.tts import tts_service
+        logger.info("Using Piper TTS provider")
+        return tts_service
 
 
 class VoicePipeline:
@@ -17,7 +34,7 @@ class VoicePipeline:
     def __init__(self):
         """Initialize voice pipeline."""
         self.stt = stt_service
-        self.tts = tts_service
+        self.tts = get_tts_service()
         self.vad = vad_service
 
     async def initialize(self) -> None:

@@ -297,10 +297,14 @@ class RealTimeVoiceGateway:
             tts_queue = []  # Queue of (sentence_index, audio_future)
             
             # Get streaming response from LLM
-            async for token in await ollama_client.chat(
+            # chat() is async def, so we await it to get the async generator
+            response_stream = await ollama_client.chat(
                 messages=messages, 
                 stream=True
-            ):
+            )
+            
+            # Iterate over the async generator
+            async for token in response_stream:
                 if session.barge_in_detected:
                     logger.info("Response generation cancelled due to barge-in")
                     break
@@ -311,43 +315,40 @@ class RealTimeVoiceGateway:
                 # Send token to client for real-time display
                 await self.send_event(session, "token", {"text": token})
                 
-                # Check for complete sentences
-                sentences = self._split_sentences(sentence_buffer)
+                # Check for complete sentences/phrases
+                chunks = self._split_sentences(sentence_buffer)
                 
-                if len(sentences) > 1:
-                    # Process all complete sentences (except the last incomplete one)
-                    for sentence in sentences[:-1]:
-                        if sentence.strip():
+                if len(chunks) > 1:
+                    # Process all complete chunks (except the last incomplete one)
+                    for chunk in chunks[:-1]:
+                        if chunk.strip():
+                            # Check barge-in BEFORE starting TTS
+                            if session.barge_in_detected:
+                                logger.info("Skipping TTS due to barge-in")
+                                break
+                            
                             sentences_processed += 1
                             
-                            # Queue TTS job (don't await yet)
-                            tts_task = asyncio.create_task(
-                                self._synthesize_and_queue(
-                                    session, 
-                                    sentence, 
-                                    sentences_processed
-                                )
+                            # Process TTS SEQUENTIALLY (await each one)
+                            # This allows barge-in to stop remaining sentences
+                            await self._synthesize_and_queue(
+                                session, 
+                                chunk, 
+                                sentences_processed
                             )
-                            session.pending_tts_tasks.append(tts_task)
                     
-                    # Keep only the incomplete sentence
-                    sentence_buffer = sentences[-1]
+                    # Keep only the incomplete chunk
+                    sentence_buffer = chunks[-1]
             
             # Process any remaining text
             if sentence_buffer.strip() and not session.barge_in_detected:
                 sentences_processed += 1
-                tts_task = asyncio.create_task(
-                    self._synthesize_and_queue(
-                        session, 
-                        sentence_buffer, 
-                        sentences_processed
-                    )
+                await self._synthesize_and_queue(
+                    session, 
+                    sentence_buffer, 
+                    sentences_processed
                 )
-                session.pending_tts_tasks.append(tts_task)
             
-            # Wait for all TTS tasks and play in order
-            if not session.barge_in_detected:
-                await self._play_audio_queue(session)
             
             # Send complete response
             await self.send_event(session, "response_complete", {
@@ -375,11 +376,20 @@ class RealTimeVoiceGateway:
         # It will be changed to LISTENING when user starts talking (barge-in or natural turn)
     
     def _split_sentences(self, text: str) -> List[str]:
-        """Split text into sentences."""
-        # Split on sentence-ending punctuation
+        """
+        Split text into speakable sentences.
+        
+        Only split on sentence-ending punctuation (. ! ?) 
+        NOT on commas/semicolons - those create too many tiny chunks
+        which slow down TTS processing.
+        """
+        # Split on sentence-ending punctuation ONLY
+        # Pattern matches: period, exclamation, question mark
         pattern = r'(?<=[.!?])\s+'
-        sentences = re.split(pattern, text)
-        return sentences
+        chunks = re.split(pattern, text)
+        
+        # Filter out empty strings
+        return [chunk.strip() for chunk in chunks if chunk.strip()]
     
     async def _synthesize_and_queue(
         self, 
@@ -387,7 +397,13 @@ class RealTimeVoiceGateway:
         text: str, 
         index: int
     ):
-        """Synthesize speech and add to queue."""
+        """Synthesize speech and IMMEDIATELY send to client."""
+        # Early exit if barge-in already detected
+        if session.barge_in_detected:
+            logger.info("TTS skipped - barge-in already detected", 
+                       session_id=session.session_id, index=index)
+            return
+            
         try:
             logger.info("TTS job started", 
                        session_id=session.session_id, 
@@ -397,8 +413,12 @@ class RealTimeVoiceGateway:
             audio_data = await voice_pipeline.process_text_output(text)
             
             if audio_data and not session.barge_in_detected:
-                session.audio_queue.append((index, audio_data))
-                logger.info("TTS job complete", 
+                # IMMEDIATELY send audio instead of queuing
+                await self.send_event(session, "audio_start", {"index": index})
+                await self.send_audio(session, audio_data)
+                await self.send_event(session, "audio_end", {"index": index})
+                
+                logger.info("TTS job complete and audio sent", 
                            session_id=session.session_id, 
                            index=index)
             

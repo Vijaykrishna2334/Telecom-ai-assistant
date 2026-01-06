@@ -81,10 +81,12 @@ alembic.ini
 *.bin
 *.pt
 *.pth
+*.onnx
 /models/
 data/
 *.wav
 *.mp3
+backend/app/services/voice/models/*.onnx
 
 # ChromaDB
 chroma_data/

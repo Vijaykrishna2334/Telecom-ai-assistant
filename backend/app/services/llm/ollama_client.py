@@ -135,6 +135,9 @@ class OllamaClient:
             "options": {
                 "temperature": temperature,
                 "num_predict": settings.ollama_num_predict,
+                "top_k": 20,  # Limit sampling to top 20 tokens for speed
+                "top_p": 0.9,  # Nucleus sampling for faster generation
+                "repeat_penalty": 1.1,  # Prevent repetition
                 **kwargs,
             },
         }
@@ -142,13 +145,14 @@ class OllamaClient:
         logger.info("Chat completion", model=model, num_messages=len(messages))
 
         if stream:
+            # Return the async generator directly (no await needed)
             return self._stream_chat(url, payload)
         else:
             response = await self.client.post(url, json=payload)
             response.raise_for_status()
             return response.json()
 
-    async def _stream_chat(
+    def _stream_chat(
         self, url: str, payload: dict[str, Any]
     ) -> AsyncGenerator[str, None]:
         """
@@ -161,13 +165,17 @@ class OllamaClient:
         Yields:
             Chunks of generated text
         """
-        async with self.client.stream("POST", url, json=payload) as response:
-            response.raise_for_status()
-            async for line in response.aiter_lines():
-                if line:
-                    data = json.loads(line)
-                    if "message" in data and "content" in data["message"]:
-                        yield data["message"]["content"]
+        # This is a synchronous function that returns an async generator
+        async def _generate():
+            async with self.client.stream("POST", url, json=payload) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if line:
+                        data = json.loads(line)
+                        if "message" in data and "content" in data["message"]:
+                            yield data["message"]["content"]
+        
+        return _generate()
 
     async def list_models(self) -> List[dict[str, Any]]:
         """

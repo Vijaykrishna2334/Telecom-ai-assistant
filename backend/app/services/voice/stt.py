@@ -96,11 +96,18 @@ class STTService:
             
             try:
                 # Transcribe using faster-whisper
+                # beam_size=1 for fastest speed (3-5x faster than beam_size=5)
+                # Aggressive VAD settings for ultra-fast response
                 segments, info = self.model.transcribe(
                     temp_wav,
                     language=language,
                     vad_filter=True,  # Use built-in VAD
-                    beam_size=5
+                    beam_size=1,  # Fastest setting
+                    vad_parameters=dict(
+                        threshold=0.2,  # Very sensitive
+                        min_speech_duration_ms=100,  # Ultra-short minimum
+                        min_silence_duration_ms=200  # Fastest cutoff
+                    )
                 )
                 
                 # Collect all segments

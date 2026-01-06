@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.2:3b"
     ollama_timeout: int = 120
-    ollama_num_predict: int = 512
+    ollama_num_predict: int = 150  # Reduced for faster responses (was 512)
 
     # ChromaDB
     chroma_host: str = "localhost"
@@ -43,12 +43,28 @@ class Settings(BaseSettings):
     chroma_collection: str = "telecom_knowledge"
 
     # Voice Processing
-    stt_model: str = "base"
-    stt_device: str = "cpu"
-    tts_voice: str = "en_US-amy-medium"  # Natural female voice
+    # base.en: Good balance of speed and accuracy (prevents hallucinations)
+    # tiny.en was hallucinating, base.en is more reliable
+    stt_model: str = "base.en"  
+    stt_device: str = "cuda"  # GPU enabled for faster STT
+    stt_compute_type: str = "float16"  # float16 for GPU (faster than int8)
+    
+    # TTS Configuration
+    # Options: "piper" (stable), "kokoro" (faster, requires Python <3.12)
+    # NOTE: Kokoro has compatibility issues with Python 3.12 (spacy/pydantic)
+    tts_provider: str = "kokoro"  # Using Kokoro for faster TTS
+    
+    # Piper TTS settings
+    tts_voice: str = "en_US-ljspeech-high"  # High-quality natural female voice
     tts_sample_rate: int = 22050
-    vad_threshold: float = 0.5
-    vad_min_speech_duration: float = 0.25
+    
+    # Kokoro TTS settings (82M lightweight model)
+    kokoro_voice: str = "af_heart"  # American female voice
+    kokoro_lang_code: str = "a"  # 'a' = American English
+    
+    # VAD settings
+    vad_threshold: float = 0.5  # Higher threshold = less sensitive to noise (0.0-1.0)
+    vad_min_speech_duration: float = 0.25  # Minimum speech duration in seconds
 
     # Security
     cors_origins: List[str] = ["*"]  # Allow all origins for local development

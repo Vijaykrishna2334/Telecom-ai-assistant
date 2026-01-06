@@ -40,7 +40,6 @@ class TTSService:
 
     async def load_model(self) -> None:
         """Load the Piper TTS model."""
-        # First try Piper
         try:
             from piper import PiperVoice
             
@@ -51,21 +50,21 @@ class TTSService:
                 f"{self.voice}.onnx"
             )
             
-            if os.path.exists(model_path):
-                self.model = PiperVoice.load(model_path)
-                self.model_loaded = True
-                logger.info("Piper TTS model loaded", voice=self.voice)
-                return
-            else:
-                logger.warning("Piper model not found", path=model_path)
+            if not os.path.exists(model_path):
+                error_msg = f"Piper model not found at {model_path}. Please download it first."
+                logger.error(error_msg)
+                raise FileNotFoundError(error_msg)
+            
+            self.model = PiperVoice.load(model_path)
+            self.model_loaded = True
+            logger.info("Piper TTS model loaded successfully", voice=self.voice, path=model_path)
                 
-        except ImportError:
-            logger.warning("piper-tts not installed")
+        except ImportError as e:
+            logger.error("piper-tts not installed - run: pip install piper-tts")
+            raise ImportError("piper-tts package required. Install with: pip install piper-tts") from e
         except Exception as e:
-            logger.error("Piper failed", error=str(e))
-        
-        # Fallback to pyttsx3 (Windows system TTS)
-        self._init_pyttsx3()
+            logger.error("Failed to load Piper TTS", error=str(e))
+            raise
     
     def _init_pyttsx3(self):
         """Initialize pyttsx3 as fallback TTS and try to find a female voice."""
@@ -123,18 +122,60 @@ class TTSService:
             return b""
 
     def _synthesize_piper(self, text: str) -> bytes:
-        """Synthesize using Piper TTS."""
-        audio_buffer = io.BytesIO()
+        """Synthesize using Piper TTS via command line."""
+        import subprocess
+        import json
         
-        with wave.open(audio_buffer, 'wb') as wav_file:
-            wav_file.setframerate(self.sample_rate)
-            wav_file.setsampwidth(2)
-            wav_file.setnchannels(1)
+        # Use Piper CLI - the officially documented method
+        try:
+            model_path = os.path.join(
+                os.path.dirname(__file__), 
+                "models", 
+                f"{self.voice}.onnx"
+            )
             
-            for audio_bytes in self.model.synthesize_stream_raw(text):
-                wav_file.writeframes(audio_bytes)
-        
-        return audio_buffer.getvalue()
+            # Create temp file for output
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_wav:
+                temp_path = temp_wav.name
+            
+            try:
+                # Call Piper CLI: echo "text" | piper --model model.onnx --output_file output.wav
+                cmd = [
+                    'piper',
+                    '--model', model_path,
+                    '--output_file', temp_path
+                ]
+                
+                # Run Piper with text as stdin
+                result = subprocess.run(
+                    cmd,
+                    input=text.encode('utf-8'),
+                    capture_output=True,
+                    timeout=10
+                )
+                
+                if result.returncode != 0:
+                    logger.error(f"Piper CLI failed: {result.stderr.decode()}")
+                    return b""
+                
+                # Read the generated WAV file
+                with open(temp_path, 'rb') as f:
+                    audio_data = f.read()
+                
+                logger.info(f"Piper TTS generated {len(audio_data)} bytes via CLI")
+                return audio_data
+                
+            finally:
+                # Clean up temp file
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                    
+        except FileNotFoundError:
+            logger.error("Piper CLI not found - install with: pip install piper-tts")
+            return b""
+        except Exception as e:
+            logger.error("Piper CLI failed", error=str(e))
+            return b""
 
     def _synthesize_pyttsx3(self, text: str) -> bytes:
         """Synthesize using pyttsx3 system TTS."""

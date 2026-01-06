@@ -427,6 +427,30 @@
       color: #667eea;
     }
 
+    /* Typing cursor animation */
+    .typing-cursor {
+      color: #667eea;
+      animation: blink 0.8s infinite;
+      font-weight: bold;
+    }
+
+    @keyframes blink {
+
+      0%,
+      50% {
+        opacity: 1;
+      }
+
+      51%,
+      100% {
+        opacity: 0;
+      }
+    }
+
+    .log-entry.typing {
+      border-left-color: #fbbf24;
+    }
+
     /* Loading */
     .loading-dots {
       display: inline-flex;
@@ -807,7 +831,16 @@
           break;
 
         case 'speech_start':
-          updateVoiceState('listening', 'Listening...');
+          // IMMEDIATELY stop all audio when user starts speaking
+          stopAllAudio();
+          // Finalize any in-progress typing (show partial response)
+          if (typingEntry) {
+            const cursor = typingEntry.querySelector('.typing-cursor');
+            if (cursor) cursor.remove();
+            typingEntry.classList.remove('typing');
+            typingEntry = null;
+          }
+          updateVoiceState('listening', '🎙️ Listening...');
           break;
 
         case 'speech_end':
@@ -816,14 +849,18 @@
 
         case 'transcript':
           addToConversationLog('user', data.text);
+          // Start a new assistant typing entry
+          startTypingResponse();
           break;
 
         case 'token':
-          // Real-time token display (optional)
+          // Real-time token display - show LLM typing
+          appendToTypingResponse(data.text);
           break;
 
         case 'response_complete':
-          addToConversationLog('assistant', data.text);
+          // Finalize the typing response
+          finalizeTypingResponse(data.text);
           break;
 
         case 'audio_start':
@@ -885,21 +922,80 @@
       const log = document.getElementById('conversationLog');
       if (log.querySelector('p')) log.innerHTML = ''; // Clear placeholder
 
+      // Log to console for visibility
+      const speaker = role === 'user' ? '👤 You' : '🤖 Assistant';
+      console.log(`%c${speaker}: %c${text}`,
+        'color: #00d4ff; font-weight: bold',
+        'color: white');
+
       log.insertAdjacentHTML('beforeend', `
                 <div class="log-entry ${role}">
                     <strong>${role === 'user' ? '👤 You' : '🤖 Assistant'}</strong>
-                    ${text}
+                    <span class="log-text">${text}</span>
                 </div>
             `);
 
-      // Smooth scroll to bottom - scroll the PARENT container which is scrollable
+      scrollConversationLog();
+    }
+
+    // Real-time typing response functions
+    let typingEntry = null;
+
+    function startTypingResponse() {
+      const log = document.getElementById('conversationLog');
+      if (log.querySelector('p')) log.innerHTML = ''; // Clear placeholder
+
+      // Create new typing entry with blinking cursor
+      const entry = document.createElement('div');
+      entry.className = 'log-entry assistant typing';
+      entry.innerHTML = `
+        <strong>🤖 Assistant</strong>
+        <span class="log-text"></span><span class="typing-cursor">▌</span>
+      `;
+      log.appendChild(entry);
+      typingEntry = entry;
+
+      updateVoiceState('processing', '✨ AI is thinking...');
+      scrollConversationLog();
+    }
+
+    function appendToTypingResponse(token) {
+      if (typingEntry) {
+        const textSpan = typingEntry.querySelector('.log-text');
+        if (textSpan) {
+          textSpan.textContent += token;
+          scrollConversationLog();
+        }
+      }
+    }
+
+    function finalizeTypingResponse(fullText) {
+      if (typingEntry) {
+        // Remove cursor and mark as complete
+        const cursor = typingEntry.querySelector('.typing-cursor');
+        if (cursor) cursor.remove();
+        typingEntry.classList.remove('typing');
+
+        // Optionally replace with full text (in case of any desync)
+        const textSpan = typingEntry.querySelector('.log-text');
+        if (textSpan && fullText) {
+          textSpan.textContent = fullText;
+        }
+
+        typingEntry = null;
+      }
+      scrollConversationLog();
+    }
+
+    function scrollConversationLog() {
+      const log = document.getElementById('conversationLog');
       setTimeout(() => {
-        const scrollableContainer = log.parentElement; // .conversation-log div
+        const scrollableContainer = log.parentElement;
         scrollableContainer.scrollTo({
           top: scrollableContainer.scrollHeight,
           behavior: 'smooth'
         });
-      }, 200);
+      }, 50);
     }
 
     function updateVisualizer(audioData) {
