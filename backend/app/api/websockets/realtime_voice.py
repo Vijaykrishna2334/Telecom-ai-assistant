@@ -73,7 +73,7 @@ class RealTimeVoiceGateway:
     """
     
     # Configuration
-    SILENCE_TIMEOUT_MS = 2000  # 2 seconds of silence before processing
+    SILENCE_TIMEOUT_MS = 1500  # 1.5 seconds of silence before processing
     MIN_SPEECH_DURATION_MS = 250  # Minimum speech duration
     SAMPLE_RATE = 16000  # 16kHz audio
     CHUNK_SIZE = 512  # Audio chunk size in bytes
@@ -283,9 +283,22 @@ class RealTimeVoiceGateway:
         session.barge_in_detected = False
         session.pending_tts_tasks.clear()
         
-        # Create prompt and get streaming response
+        # CRITICAL: Get RAG context to ground responses in knowledge base
+        # This prevents hallucination of fake plans like "Jio Bronze"
+        try:
+            from app.services.rag import knowledge_base
+            context = await knowledge_base.get_context_for_query(transcript)
+            logger.info("RAG context retrieved", 
+                       session_id=session.session_id,
+                       context_length=len(context) if context else 0)
+        except Exception as e:
+            logger.warning("Failed to get RAG context, proceeding without", error=str(e))
+            context = None
+        
+        # Create prompt WITH RAG context
         messages = create_voice_prompt(
             user_message=transcript,
+            context=context,  # Now passing RAG context!
             conversation_history=session.history
         )
         

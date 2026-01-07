@@ -85,8 +85,16 @@ async def voice_websocket(websocket: WebSocket, session_id: str) -> None:
                         session_id,
                     )
 
-                    # Generate LLM response
-                    messages = create_voice_prompt(transcription)
+                    # CRITICAL: Get RAG context to ground responses in knowledge base
+                    try:
+                        from app.services.rag import knowledge_base
+                        context = await knowledge_base.get_context_for_query(transcription)
+                    except Exception as e:
+                        logger.warning("Failed to get RAG context", error=str(e))
+                        context = None
+                    
+                    # Generate LLM response WITH RAG context
+                    messages = create_voice_prompt(transcription, context=context)
                     response = await ollama_client.chat(messages=messages)
                     response_text = response.get("message", {}).get("content", "")
 

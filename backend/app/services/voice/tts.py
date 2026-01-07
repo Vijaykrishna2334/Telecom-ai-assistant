@@ -1,18 +1,98 @@
 """
-Text-to-Speech service using Piper TTS.
+Text-to-Speech service with multiple provider support.
+Providers: Piper (default), Kokoro, CosyVoice
 Runs fully locally without cloud dependencies.
-Falls back to pyttsx3 (system TTS) on Windows if Piper is not available.
 """
 import io
 import wave
 import tempfile
 import os
-from typing import Optional
+import re
+from typing import Optional, AsyncGenerator
 
 from app.core.config import settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+def sanitize_text_for_tts(text: str) -> str:
+    """
+    Clean text for TTS to avoid speaking symbols.
+    Converts symbols to spoken words.
+    
+    Args:
+        text: Raw text with potential symbols
+        
+    Returns:
+        Clean text suitable for speech synthesis
+    """
+    if not text:
+        return text
+    
+    # Replace currency symbols with words
+    text = text.replace("₹", "rupees ")
+    text = text.replace("$", "dollars ")
+    text = text.replace("€", "euros ")
+    text = text.replace("£", "pounds ")
+    
+    # Replace emoji symbols with nothing or words
+    text = text.replace("❌", "")
+    text = text.replace("✅", "")
+    text = text.replace("📱", "")
+    text = text.replace("🚨", "")
+    text = text.replace("📞", "")
+    text = text.replace("📋", "")
+    text = text.replace("✓", "")
+    text = text.replace("✗", "")
+    text = text.replace("→", "to")
+    text = text.replace("←", "from")
+    text = text.replace("•", "")
+    text = text.replace("·", "")
+    
+    # Replace markdown symbols
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Remove **bold**
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)  # Remove *italic*
+    text = re.sub(r'#{1,6}\s*', '', text)  # Remove markdown headers
+    text = re.sub(r'\|[^\n]+\|', '', text)  # Remove table rows
+    text = re.sub(r'-{3,}', '', text)  # Remove horizontal rules
+    
+    # Replace pipe characters (from tables)
+    text = text.replace("|", "")
+    
+    # Clean up multiple spaces and newlines
+    text = re.sub(r'\n\s*\n', '\n', text)
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = text.strip()
+    
+    return text
+
+
+def get_tts_service():
+    """
+    Factory function to get the appropriate TTS service based on config.
+    
+    Returns:
+        TTS service instance (Piper, Kokoro, or CosyVoice)
+    """
+    provider = getattr(settings, 'tts_provider', 'piper').lower()
+    
+    if provider == "kokoro":
+        from app.services.voice.kokoro_tts import KokoroTTSService
+        logger.info("Using Kokoro TTS provider")
+        return KokoroTTSService()
+    
+    elif provider == "cosyvoice":
+        from app.services.voice.cosyvoice_tts import CosyVoiceTTSService
+        logger.info("Using CosyVoice TTS provider (150ms latency)")
+        return CosyVoiceTTSService(
+            model_name=getattr(settings, 'cosyvoice_model', 'CosyVoice2-0.5B'),
+            voice=getattr(settings, 'cosyvoice_voice', None)
+        )
+    
+    else:  # Default to Piper
+        logger.info("Using Piper TTS provider")
+        return TTSService()
 
 
 class TTSService:
@@ -105,6 +185,9 @@ class TTSService:
         """
         if not text or not text.strip():
             return b""
+        
+        # Sanitize text to remove symbols that TTS would spell out
+        text = sanitize_text_for_tts(text)
             
         logger.info("Synthesizing speech", text_length=len(text))
 
@@ -205,6 +288,9 @@ class TTSService:
         """
         if not text or not text.strip():
             return
+        
+        # Sanitize text to remove symbols that TTS would spell out
+        text = sanitize_text_for_tts(text)
             
         if not self.model_loaded:
             return

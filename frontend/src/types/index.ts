@@ -8,6 +8,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   messageType?: 'text' | 'transcription' | 'function_call';
+  ragContext?: string;  // RAG context for debugging
 }
 
 export interface ChatRequest {
@@ -20,6 +21,7 @@ export interface ChatResponse {
   message: string;
   session_id: string;
   conversation_id: number;
+  rag_context?: string;  // RAG context for debugging
 }
 
 export interface Plan {

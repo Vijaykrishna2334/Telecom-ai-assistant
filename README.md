@@ -127,13 +127,52 @@ npm test
 | **Backend** | FastAPI | High-performance async API |
 | **Frontend** | React + TypeScript | Modern reactive UI |
 | **LLM Runtime** | Ollama | Local LLM inference |
-| **Models** | Llama 3.2 3B / Mistral 7B | Language understanding |
-| **Vector DB** | ChromaDB | Semantic search |
+| **Models** | Llama 3.2 3B / Tele-LLM | Language understanding |
+| **Vector DB** | ChromaDB | Semantic search & RAG |
+| **Embeddings** | sentence-transformers | Text vectorization |
 | **Database** | PostgreSQL | Persistent data storage |
 | **Cache** | Redis | Performance optimization |
 | **STT** | Faster-Whisper | Speech-to-text |
-| **TTS** | Piper | Text-to-speech |
+| **TTS** | Piper | Text-to-speech (with symbol sanitization) |
 | **VAD** | Silero VAD | Voice activity detection |
+
+## 🧠 RAG (Retrieval-Augmented Generation)
+
+The assistant uses a sophisticated RAG pipeline to provide accurate, grounded responses from the knowledge base.
+
+### RAG Architecture
+```
+User Query → Embedding → ChromaDB Search → Context Retrieval → LLM Generation
+                              ↓
+                     knowledge/ directory
+                     ├── plans/           # JioMobile, JioFiber, JioAirFiber plans
+                     ├── faqs/            # Customer support FAQs
+                     ├── troubleshooting/ # Network issue guides
+                     └── policies/        # Terms of service
+```
+
+### Key Features
+- **Semantic Search**: Uses `sentence-transformers/all-MiniLM-L6-v2` for embeddings
+- **Smart Chunking**: Documents split into optimal chunks with overlap
+- **Source Attribution**: Responses cite which document the info came from
+- **Anti-Hallucination**: Strict prompts prevent the LLM from inventing fake plans
+
+### Knowledge Base API
+```bash
+# Search the knowledge base
+curl -X POST http://localhost:8080/api/v1/knowledge/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "5G plans with unlimited data", "top_k": 3}'
+
+# Ingest new documents
+python reingest_knowledge.py
+```
+
+### Anti-Hallucination Measures
+The system includes explicit blacklists of fake plans that the LLM must never mention:
+- ❌ "Basic 30" / "Standard 50" / "Premium 80" - These don't exist
+- ❌ Any mobile plan under ₹199 - Jio prepaid starts at ₹199
+- ✅ Only mentions plans from the retrieved context
 
 ## 📁 Project Structure
 

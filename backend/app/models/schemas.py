@@ -35,6 +35,7 @@ class ChatResponse(BaseModel):
     message: str = Field(..., description="Assistant response message")
     session_id: str = Field(..., description="Session ID")
     conversation_id: int = Field(..., description="Conversation ID")
+    rag_context: Optional[str] = Field(None, description="RAG context used for response (debug)")
 
 
 # Plan Schemas

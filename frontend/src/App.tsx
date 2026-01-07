@@ -60,6 +60,7 @@ function App() {
         content: data.message || 'Sorry, I could not process your request.',
         timestamp: new Date(),
         messageType: 'text',
+        ragContext: data.rag_context || undefined,  // Debug: RAG context
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
@@ -79,7 +80,7 @@ function App() {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <ChatWindow
             messages={messages}
             onSendMessage={handleSendMessage}

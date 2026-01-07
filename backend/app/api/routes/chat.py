@@ -66,6 +66,7 @@ async def send_message(request: ChatRequest) -> ChatResponse:
             message=assistant_message,
             session_id=session_id,
             conversation_id=1,  # Would be actual conversation ID from DB
+            rag_context=context if context else None,  # Debug: Show RAG context
         )
 
     except Exception as e:

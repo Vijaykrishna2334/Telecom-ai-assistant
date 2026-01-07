@@ -82,7 +82,9 @@ alembic.ini
 *.pt
 *.pth
 *.onnx
+*.gguf
 /models/
+backend/models/
 data/
 *.wav
 *.mp3

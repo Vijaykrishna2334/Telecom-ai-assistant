@@ -95,18 +95,28 @@ class STTService:
             temp_wav = self._bytes_to_wav_file(audio_data)
             
             try:
-                # Transcribe using faster-whisper
-                # beam_size=1 for fastest speed (3-5x faster than beam_size=5)
-                # Aggressive VAD settings for ultra-fast response
+                # Telecom vocabulary prompt - helps Whisper recognize domain terms
+                # CRITICAL: Include "Jio" spelled different ways to prevent "Geo" mishearing
+                jio_vocabulary = (
+                    "Jio, JIO, jio, Jio Mobile, Jio Fiber, JioFiber, Jio AirFiber, JioAirFiber, "
+                    "Reliance Jio, MyJio app, Jio store, Jio recharge, Jio SIM, Jio number, "
+                    "Jio prepaid, Jio postpaid, Jio plans, JioTV, JioCinema, Jio Prime, "
+                    "Netflix, Amazon Prime, OTT apps, Disney Hotstar, broadband, "
+                    "5G, 4G, network, signal, WiFi, router, Mbps, gigabit, data pack, "
+                    "recharge, billing, payment, unlimited data, customer care, helpline"
+                )
+                
+                # Transcribe using faster-whisper with vocabulary hints
                 segments, info = self.model.transcribe(
                     temp_wav,
                     language=language,
-                    vad_filter=True,  # Use built-in VAD
-                    beam_size=1,  # Fastest setting
+                    vad_filter=True,
+                    beam_size=3,  # Better accuracy than beam_size=1
+                    initial_prompt=jio_vocabulary,  # Vocabulary hint
                     vad_parameters=dict(
-                        threshold=0.2,  # Very sensitive
-                        min_speech_duration_ms=100,  # Ultra-short minimum
-                        min_silence_duration_ms=200  # Fastest cutoff
+                        threshold=0.3,
+                        min_speech_duration_ms=150,
+                        min_silence_duration_ms=300
                     )
                 )
                 
