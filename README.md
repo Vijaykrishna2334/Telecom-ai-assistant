@@ -13,7 +13,7 @@ A complete, production-ready AI application that automates customer interactions
 
 ### Core Capabilities
 - **🤖 AI-Powered Chat**: Context-aware responses using Ollama LLM (Llama 3.2 / Mistral 7B)
-- **🎙️ Voice Support**: Real-time voice interactions with STT (Faster-Whisper) and TTS (Piper)
+- **🎙️ Voice Support**: Real-time voice interactions with STT (Faster-Whisper) and TTS (Kokoro-82M)
 - **📚 RAG Engine**: Semantic search with ChromaDB for accurate information retrieval
 - **🔧 Function Calling**: Automated handling of plan queries, billing, network diagnostics
 - **💬 WebSocket Support**: Real-time streaming for both text and voice
@@ -133,7 +133,7 @@ npm test
 | **Database** | PostgreSQL | Persistent data storage |
 | **Cache** | Redis | Performance optimization |
 | **STT** | Faster-Whisper | Speech-to-text |
-| **TTS** | Piper | Text-to-speech (with symbol sanitization) |
+| **TTS** | Kokoro-82M | Text-to-speech (82M params, 24kHz audio) |
 | **VAD** | Silero VAD | Voice activity detection |
 
 ## 🧠 RAG (Retrieval-Augmented Generation)
