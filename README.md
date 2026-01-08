@@ -51,13 +51,18 @@ A complete, production-ready AI application that automates customer interactions
 ```
 
 ## 📋 Prerequisites
-
 - **Docker** and **Docker Compose**
 - **8GB RAM minimum** (16GB recommended)
 - **10GB disk space**
 - **GPU optional** (for faster LLM inference)
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Local Development)
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- [Ollama](https://ollama.ai/) installed
+- 8GB RAM minimum (16GB recommended)
 
 ### 1. Clone the Repository
 ```bash
@@ -65,13 +70,70 @@ git clone https://github.com/Vijaykrishna2334/Telecom-ai-assistant.git
 cd Telecom-ai-assistant
 ```
 
-### 2. Configure Environment
+### 2. Setup Ollama & LLM Model
 ```bash
-cp .env.example .env
-# Edit .env with your settings
+# Install Ollama from https://ollama.ai/download
+# Then pull the model:
+ollama pull llama3.2:3b
+
+# Start Ollama server (runs on http://localhost:11434)
+ollama serve
 ```
 
-### 3. Start Services
+### 3. Setup Backend
+```bash
+cd backend
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On Mac/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install Kokoro TTS (for voice)
+pip install kokoro>=0.9.2 soundfile
+
+# Copy environment file
+cp ../.env.example .env
+# Edit .env and set OLLAMA_BASE_URL=http://localhost:11434
+
+# Ingest knowledge base (first time only)
+python -c "from app.services.rag.ingestion import ingest_knowledge_base; import asyncio; asyncio.run(ingest_knowledge_base())"
+
+# Run backend server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 4. Setup Voice Companion Frontend (New UI)
+Open a new terminal:
+```bash
+cd telecom-voice-companion-main
+
+# Install dependencies
+npm install
+
+# Create .env file
+echo "VITE_API_BASE_URL=http://localhost:8000" > .env
+
+# Run frontend
+npm run dev
+```
+
+### 5. Access the Application
+- **Voice Companion UI**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/api/v1/docs
+- **Health Check**: http://localhost:8000/health
+
+## 🐳 Docker Setup (Production)
+
+### Start All Services
 ```bash
 # Start all services
 docker-compose up -d
@@ -83,26 +145,33 @@ docker exec -it telecom-ai-assistant-ollama-1 ollama pull llama3.2:3b
 docker-compose logs -f
 ```
 
-### 4. Access the Application
+### Access via Docker
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8080
 - **API Docs**: http://localhost:8080/api/v1/docs
-- **Health Check**: http://localhost:8080/health
 
-## 🛠️ Development Setup
+## 🛠️ Development Commands
 
-### Backend Development
+### Backend
 ```bash
 cd backend
-python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
 
-# Run locally
+# Run server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Run tests
+pytest tests/ -v --cov=app
 ```
 
-### Frontend Development
+### Frontend (Voice Companion)
+```bash
+cd telecom-voice-companion-main
+npm run dev      # Development server
+npm run build    # Production build
+```
+
+### Legacy Frontend
 ```bash
 cd frontend
 npm install
@@ -114,10 +183,6 @@ npm run dev
 # Backend tests
 cd backend
 pytest tests/ -v --cov=app
-
-# Frontend tests
-cd frontend
-npm test
 ```
 
 ## 📊 Technology Stack
