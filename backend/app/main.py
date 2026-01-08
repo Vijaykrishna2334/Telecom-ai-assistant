@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import assistants, calls, chat, health, voice, knowledge
+from app.api.routes import assistants, calls, chat, chat_stream, health, voice, knowledge
 from app.api.websockets import chat_ws, voice_ws, realtime_voice
 from app.core import configure_logging, get_logger, settings
 from app.models import close_db, init_db
@@ -109,6 +109,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, tags=["Health"])
 app.include_router(chat.router, prefix=settings.api_prefix, tags=["Chat"])
+app.include_router(chat_stream.router, prefix=settings.api_prefix, tags=["Chat"])
 app.include_router(voice.router, prefix=settings.api_prefix, tags=["Voice"])
 app.include_router(assistants.router, prefix=settings.api_prefix, tags=["Assistants"])
 app.include_router(calls.router, prefix=settings.api_prefix, tags=["Plans"])
