@@ -38,7 +38,8 @@ async def generate_stream(
     
     try:
         # Stream tokens from Ollama
-        async for token in ollama_client.chat(messages=messages, stream=True):
+        stream_generator = await ollama_client.chat(messages=messages, stream=True)
+        async for token in stream_generator:
             full_response += token
             # Format as SSE data
             data = json.dumps({"token": token, "session_id": session_id})

@@ -206,6 +206,42 @@ class RetrieverService:
             logger.error("Failed to get stats", error=str(e))
             return {"name": self.collection_name, "count": 0}
 
+    async def get_all_documents(self) -> List[Dict[str, Any]]:
+        """
+        Get all documents from the collection for BM25 indexing.
+
+        Returns:
+            List of all documents with text and metadata
+        """
+        if self.collection is None:
+            await self.connect()
+
+        try:
+            # Get collection count
+            count = self.collection.count()
+            if count == 0:
+                return []
+
+            # Get all documents (ChromaDB returns all if no query specified)
+            results = self.collection.get(
+                include=["documents", "metadatas"]
+            )
+
+            documents = []
+            if results and results.get("documents"):
+                for i, doc in enumerate(results["documents"]):
+                    documents.append({
+                        "text": doc,
+                        "metadata": results["metadatas"][i] if results.get("metadatas") else {},
+                    })
+
+            logger.info("Retrieved all documents for indexing", count=len(documents))
+            return documents
+
+        except Exception as e:
+            logger.error("Failed to get all documents", error=str(e))
+            return []
+
 
 # Global retriever service instance
 retriever_service = RetrieverService()

@@ -1,94 +1,87 @@
 import { useState, useEffect } from 'react';
 import './styles/globals.css';
-import ChatWindow from './components/Chat/ChatWindow';
-import Header from './components/Layout/Header';
-import type { Message } from './types';
+import LandingPage from './components/Landing/LandingPage';
+import ChatPage from './components/Chat/ChatPage';
 
 function App() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [sessionId, setSessionId] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<'landing' | 'chat'>('landing');
 
   useEffect(() => {
-    // Initialize with welcome message
-    const welcomeMessage: Message = {
-      id: '1',
-      role: 'assistant',
-      content: 'Hello! I\'m your Telecom AI Assistant. How can I help you today? You can ask me about plans, billing, network issues, or anything else related to your telecom service.',
-      timestamp: new Date(),
-      messageType: 'text',
+    // Simple routing based on pathname
+    const path = window.location.pathname;
+    if (path === '/chat') {
+      setCurrentPage('chat');
+    } else {
+      setCurrentPage('landing');
+    }
+
+    // Handle navigation events
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/chat') {
+        setCurrentPage('chat');
+      } else {
+        setCurrentPage('landing');
+      }
     };
-    setMessages([welcomeMessage]);
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const handleSendMessage = async (content: string) => {
-    // Add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content,
-      timestamp: new Date(),
-      messageType: 'text',
+  // Override window.location.href to handle client-side navigation
+  useEffect(() => {
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    window.history.pushState = function (...args) {
+      originalPushState.apply(window.history, args);
+      window.dispatchEvent(new Event('popstate'));
     };
-    setMessages(prev => [...prev, userMessage]);
 
-    // Call backend API to get response
-    try {
-      const response = await fetch('http://localhost:8080/api/v1/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: content,
-          session_id: sessionId || undefined,
-        }),
-      });
+    window.history.replaceState = function (...args) {
+      originalReplaceState.apply(window.history, args);
+      window.dispatchEvent(new Event('popstate'));
+    };
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
+    // Intercept link clicks
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'A' || target.closest('a')) {
+        const link = (target.tagName === 'A' ? target : target.closest('a')) as HTMLAnchorElement;
+        const href = link.getAttribute('href');
+
+        if (href && (href === '/chat' || href === '/')) {
+          e.preventDefault();
+          window.history.pushState({}, '', href);
+          setCurrentPage(href === '/chat' ? 'chat' : 'landing');
+        }
       }
 
-      const data = await response.json();
-
-      if (data.session_id) {
-        setSessionId(data.session_id);
+      if (target.tagName === 'BUTTON' && target.getAttribute('onclick')?.includes('window.location.href')) {
+        e.preventDefault();
+        const match = target.getAttribute('onclick')?.match(/['"]([^'"]+)['"]/);
+        if (match) {
+          const href = match[1];
+          if (href === '/chat' || href === '/') {
+            window.history.pushState({}, '', href);
+            setCurrentPage(href === '/chat' ? 'chat' : 'landing');
+          }
+        }
       }
+    };
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.message || 'Sorry, I could not process your request.',
-        timestamp: new Date(),
-        messageType: 'text',
-        ragContext: data.rag_context || undefined,  // Debug: RAG context
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, there was an error connecting to the server. Please make sure the backend is running.',
-        timestamp: new Date(),
-        messageType: 'text',
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    }
-  };
+    document.addEventListener('click', handleClick);
 
-  return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto">
-          <ChatWindow
-            messages={messages}
-            onSendMessage={handleSendMessage}
-          />
-        </div>
-      </main>
-    </div>
-  );
+    return () => {
+      document.removeEventListener('click', handleClick);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
+  }, []);
+
+  return currentPage === 'landing' ? <LandingPage /> : <ChatPage />;
 }
 
 export default App;
+

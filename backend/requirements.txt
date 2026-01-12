@@ -22,6 +22,7 @@ pydantic-settings==2.1.0
 ollama==0.1.6
 sentence-transformers==2.3.1
 chromadb==0.4.22
+rank-bm25==0.2.2  # BM25 for hybrid search
 
 # Voice Processing
 faster-whisper==1.2.1  # Updated from 0.10.0 for Windows Python 3.12 compatibility

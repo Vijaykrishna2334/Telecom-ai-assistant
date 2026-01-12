@@ -19,13 +19,13 @@ KNOWLEDGE_PATH = Path(__file__).parent.parent.parent.parent.parent / "knowledge"
 class DocumentChunker:
     """Chunks documents based on their type for optimal retrieval."""
 
-    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 50):
+    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 100):
         """
         Initialize chunker.
 
         Args:
-            chunk_size: Maximum characters per chunk
-            chunk_overlap: Overlap between chunks
+            chunk_size: Maximum characters per chunk (1000 optimal for plan tables)
+            chunk_overlap: Overlap between chunks for context continuity
         """
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
@@ -235,6 +235,10 @@ class IngestionService:
         
         # Connect to retriever first
         await retriever_service.connect()
+        
+        # Clear old data before ingesting (ensures fresh index with latest files)
+        await retriever_service.clear_collection()
+        logger.info("Cleared old knowledge base data")
         
         stats = {
             "files_processed": 0,

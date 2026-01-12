@@ -1,3 +1,68 @@
+# Jio Network Troubleshooting Guide
+
+## Mobile Data Not Working (Jio SIM)
+
+### Quick Fixes for Mobile Data Issues
+If you have signal but mobile data is not working on your Jio SIM:
+
+1. **Toggle Airplane Mode**
+   - Turn ON Airplane Mode for 10 seconds
+   - Turn it OFF
+   - Wait for network to reconnect
+
+2. **Toggle Mobile Data**
+   - Go to Settings → Mobile Data
+   - Turn OFF mobile data
+   - Wait 5 seconds, turn it back ON
+
+3. **Restart Your Phone**
+   - Power off your phone completely
+   - Wait 30 seconds
+   - Power it back on
+
+4. **Check Data Balance**
+   - Dial *333# to check data balance
+   - Open MyJio App → Check data usage
+   - If data exhausted, recharge to restore
+
+### Network Settings Reset
+If basic steps don't work:
+1. Go to Settings → Network & Internet
+2. Tap "Reset Network Settings"
+3. Confirm reset
+4. Restart phone after reset
+
+### APN Settings (Jio)
+If mobile data still not working, check APN:
+1. Go to Settings → Mobile Network → Access Point Names
+2. Jio APN should be: **jionet**
+3. If missing, tap "+" to add:
+   - Name: Jio 4G
+   - APN: jionet
+   - Leave other fields blank/default
+4. Save and select this APN
+
+### SIM Card Issues
+If showing signal but no data:
+1. Remove SIM card carefully
+2. Clean the gold contacts with soft cloth
+3. Reinsert SIM properly
+4. Restart phone
+
+### Check for Network Outage
+1. Open MyJio App → JioCare
+2. Check if there's any network outage in your area
+3. Or call 198 (toll-free) to check outage status
+
+### When to Contact Support
+Call **198** or **1800-88-99999** if:
+- Issue persists after all troubleshooting steps
+- SIM shows "No Service" or "Emergency Only"
+- Data not working for more than 2 hours
+- APN reset doesn't help
+
+---
+
 # JioFiber & JioAirFiber Troubleshooting Guide
 
 ## Internet Not Working

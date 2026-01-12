@@ -52,7 +52,7 @@ class KnowledgeBaseService:
         return await self.retriever.retrieve(query, top_k)
 
     async def get_context_for_query(
-        self, query: str, max_length: int = 2000
+        self, query: str, max_length: int = 2000, conversation_history: list = None
     ) -> str:
         """
         Get context text for a query using CRAG methodology.
@@ -65,12 +65,13 @@ class KnowledgeBaseService:
         Args:
             query: Search query
             max_length: Maximum context length
+            conversation_history: List of previous messages for context
 
         Returns:
             Concatenated context string (or fallback message)
         """
-        # Use CRAG chain for intelligent retrieval
-        result: CRAGResult = await self.crag.process(query)
+        # Use CRAG chain for intelligent retrieval with conversation context
+        result: CRAGResult = await self.crag.process(query, conversation_history)
         
         if result.action == CRAGAction.FALLBACK:
             logger.info("CRAG: No relevant context, using fallback")

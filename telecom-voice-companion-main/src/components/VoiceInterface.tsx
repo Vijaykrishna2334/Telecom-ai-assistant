@@ -63,6 +63,8 @@ const VoiceInterface = ({ sessionId }: VoiceInterfaceProps) => {
   const handleWebSocketEvent = (data: any) => {
     switch (data.type) {
       case "speech_start":
+        // BARGE-IN: Stop all audio immediately when user starts speaking
+        stopCurrentAudio();
         setOrbState("listening");
         break;
       case "speech_end":
@@ -125,6 +127,7 @@ const VoiceInterface = ({ sessionId }: VoiceInterfaceProps) => {
   const audioQueueRef = useRef<Blob[]>([]);
   const isPlayingRef = useRef(false);
   const playbackAudioContextRef = useRef<AudioContext | null>(null);
+  const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   const playNextInQueue = useCallback(async () => {
     if (isPlayingRef.current || audioQueueRef.current.length === 0) {
@@ -150,6 +153,7 @@ const VoiceInterface = ({ sessionId }: VoiceInterfaceProps) => {
       const arrayBuffer = await blob.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       const source = audioContext.createBufferSource();
+      currentSourceRef.current = source; // Track for barge-in
       source.buffer = audioBuffer;
       source.connect(audioContext.destination);
 
@@ -186,6 +190,24 @@ const VoiceInterface = ({ sessionId }: VoiceInterfaceProps) => {
   const clearAudioQueue = useCallback(() => {
     audioQueueRef.current = [];
     isPlayingRef.current = false;
+  }, []);
+
+  // Stop currently playing audio (for barge-in)
+  const stopCurrentAudio = useCallback(() => {
+    // Stop the currently playing source
+    if (currentSourceRef.current) {
+      try {
+        currentSourceRef.current.stop();
+      } catch (e) {
+        console.log('Audio source already stopped');
+      }
+      currentSourceRef.current = null;
+    }
+
+    // Clear the queue
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
+    console.log('Barge-in: All audio stopped');
   }, []);
 
   const startVoice = async () => {

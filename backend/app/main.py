@@ -54,6 +54,15 @@ async def lifespan(app: FastAPI):
         await knowledge_base.initialize()
         logger.info("Knowledge base initialized")
         
+        # Auto-ingest knowledge files on startup (ensures latest files are indexed)
+        try:
+            ingest_result = await knowledge_base.ingest_knowledge_files()
+            logger.info("Knowledge files auto-ingested", 
+                       files=ingest_result.get("files_processed", 0),
+                       chunks=ingest_result.get("chunks_created", 0))
+        except Exception as ingest_error:
+            logger.warning("Auto-ingest failed, using existing index", error=str(ingest_error))
+        
         # Initialize voice pipeline
         await voice_pipeline.initialize()
         logger.info("Voice pipeline initialized")

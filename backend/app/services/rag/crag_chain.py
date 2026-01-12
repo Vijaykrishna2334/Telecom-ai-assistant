@@ -2,7 +2,7 @@
 CRAG Chain - Corrective Retrieval-Augmented Generation.
 
 This is the main RAG orchestrator implementing the 2024 CRAG paper methodology:
-1. Retrieve documents
+1. Retrieve documents (using HYBRID search - vector + BM25 with RRF fusion)
 2. Grade relevance (CRAG-specific)
 3. Decision gate:
    - CORRECT → Use documents for generation
@@ -15,9 +15,10 @@ https://arxiv.org/abs/2401.15884
 from typing import List, Optional, Dict, Any, Tuple
 from dataclasses import dataclass
 from enum import Enum
+import re
 
 from app.core.logging import get_logger
-from app.services.rag.retriever import retriever_service
+from app.services.rag.hybrid_retriever import hybrid_retriever
 from app.services.rag.relevance_grader import relevance_grader, RelevanceGrade
 from app.services.rag.embeddings import embedding_service
 
@@ -70,7 +71,7 @@ class CRAGChain:
         self.max_context_length = max_context_length
         self.max_refinement_attempts = max_refinement_attempts
         
-        self.retriever = retriever_service
+        self.retriever = hybrid_retriever
         self.grader = relevance_grader
         
         # Fallback message when no relevant docs found
@@ -81,25 +82,26 @@ class CRAGChain:
         )
         
         logger.info(
-            "CRAG Chain initialized",
+            "CRAG Chain initialized with HYBRID search (vector + BM25)",
             top_k=top_k,
             max_context=max_context_length
         )
 
-    async def process(self, query: str) -> CRAGResult:
+    async def process(self, query: str, conversation_history: list = None) -> CRAGResult:
         """
         Process a query through the CRAG pipeline.
 
         Args:
             query: User query
+            conversation_history: Previous messages for context-aware expansion
 
         Returns:
             CRAGResult with context and action
         """
         logger.info("CRAG processing query", query=query[:100])
         
-        # Step 0: Smart query expansion based on intent
-        expanded_query = self._expand_query_by_intent(query)
+        # Step 0: Smart query expansion based on intent AND conversation history
+        expanded_query = self._expand_query_by_intent(query, conversation_history)
         
         # Step 1: Retrieve documents
         documents = await self.retriever.retrieve(expanded_query, self.top_k)
@@ -217,12 +219,17 @@ class CRAGChain:
         
         return None
 
-    def _expand_query_by_intent(self, query: str) -> str:
+    def _expand_query_by_intent(self, query: str, conversation_history: list = None) -> str:
         """
         Expand query based on detected user intent (mobile vs fiber vs airfiber).
+        Also checks conversation history to understand context from previous messages.
         This helps RAG retrieve the correct type of plans.
         """
         query_lower = query.lower()
+        
+        # FIRST: Check conversation history for context
+        # This is crucial for follow-up queries like "any OTT plans with it"
+        history_context = self._extract_context_from_history(conversation_history)
         
         # Detect explicit postpaid intent
         postpaid_keywords = ['postpaid', 'post paid', 'post-paid', 'monthly bill']
@@ -252,10 +259,17 @@ class CRAGChain:
         airfiber_keywords = ['airfiber', 'air fiber', '5g home', 'wireless broadband']
         is_airfiber = any(kw in query_lower for kw in airfiber_keywords)
         
+        # Detect price range queries (e.g., "500 to 700 range", "between 300 and 500")
+        price_range_pattern = r'\b(\d{2,4})\s*(?:to|and|-)\s*(\d{2,4})\b'
+        has_price_range = re.search(price_range_pattern, query_lower)
+        
         # Expand query based on intent
         if is_postpaid:
             expansion = " jio postpaid monthly bill"
             logger.info("Query intent: POSTPAID", original=query[:50])
+        elif is_airfiber:
+            expansion = " jioairfiber 5g wireless"
+            logger.info("Query intent: AIRFIBER", original=query[:50])
         elif is_prepaid or (is_mobile and not is_fiber and not is_airfiber):
             # Prepaid is default for mobile queries
             expansion = " jio mobile prepaid recharge plan"
@@ -263,9 +277,28 @@ class CRAGChain:
         elif is_fiber and not is_mobile:
             expansion = " jiofiber broadband home internet"
             logger.info("Query intent: FIBER", original=query[:50])
-        elif is_airfiber:
-            expansion = " jioairfiber 5g wireless"
-            logger.info("Query intent: AIRFIBER", original=query[:50])
+        elif has_price_range:
+            # Price range queries - assume prepaid mobile unless history says otherwise
+            if history_context == "airfiber":
+                expansion = " jioairfiber 5g wireless price"
+            elif history_context == "fiber":
+                expansion = " jiofiber broadband price"
+            else:
+                expansion = " jio mobile prepaid recharge plan price"
+            logger.info("Query intent: PRICE RANGE", original=query[:50])
+        elif history_context:
+            # Use context from conversation history for ambiguous queries
+            if history_context == "airfiber":
+                expansion = " jioairfiber 5g wireless"
+                logger.info("Query intent: AIRFIBER (from history)", original=query[:50])
+            elif history_context == "fiber":
+                expansion = " jiofiber broadband home internet"
+                logger.info("Query intent: FIBER (from history)", original=query[:50])
+            elif history_context == "mobile":
+                expansion = " jio mobile prepaid recharge plan"
+                logger.info("Query intent: MOBILE (from history)", original=query[:50])
+            else:
+                expansion = ""
         else:
             # Check for common prepaid price ranges
             if any(word in query_lower for word in ['₹199', '₹249', '₹299', '₹349', '₹479', '₹579', '₹899']):
@@ -278,6 +311,38 @@ class CRAGChain:
                 expansion = ""
         
         return query + expansion
+    
+    def _extract_context_from_history(self, conversation_history: list) -> str:
+        """
+        Extract the topic context from recent conversation history.
+        Returns: 'airfiber', 'fiber', 'mobile', or None
+        """
+        if not conversation_history:
+            return None
+        
+        # Check last few messages (up to 6) for context
+        recent_msgs = conversation_history[-6:] if len(conversation_history) > 6 else conversation_history
+        history_text = " ".join([msg.get("content", "") for msg in recent_msgs]).lower()
+        
+        # Priority: Check for AirFiber first (more specific)
+        airfiber_indicators = ['airfiber', 'air fiber', 'jioairfiber', '5g home', 'wireless broadband', '5g antenna']
+        if any(kw in history_text for kw in airfiber_indicators):
+            logger.info("History context detected: AIRFIBER")
+            return "airfiber"
+        
+        # Then check for regular Fiber
+        fiber_indicators = ['jiofiber', 'fiber', 'broadband', 'home internet', 'router']
+        if any(kw in history_text for kw in fiber_indicators):
+            logger.info("History context detected: FIBER")
+            return "fiber"
+        
+        # Then check for Mobile
+        mobile_indicators = ['mobile', 'recharge', 'prepaid', 'postpaid', 'sim', '4g', '5g data']
+        if any(kw in history_text for kw in mobile_indicators):
+            logger.info("History context detected: MOBILE")
+            return "mobile"
+        
+        return None
 
 
     def _extract_keywords(self, text: str) -> List[str]:

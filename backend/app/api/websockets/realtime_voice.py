@@ -287,7 +287,12 @@ class RealTimeVoiceGateway:
         # This prevents hallucination of fake plans like "Jio Bronze"
         try:
             from app.services.rag import knowledge_base
-            context = await knowledge_base.get_context_for_query(transcript)
+            # Pass conversation history so RAG can understand context
+            # (e.g., if user was asking about AirFiber, continue with AirFiber docs)
+            context = await knowledge_base.get_context_for_query(
+                transcript, 
+                conversation_history=session.history
+            )
             logger.info("RAG context retrieved", 
                        session_id=session.session_id,
                        context_length=len(context) if context else 0)

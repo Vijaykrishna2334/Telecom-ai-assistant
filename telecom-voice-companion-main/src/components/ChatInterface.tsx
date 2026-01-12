@@ -3,6 +3,8 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { API_ENDPOINTS } from "@/config/api";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Message {
   id: string;
@@ -84,44 +86,71 @@ const ChatInterface = ({ sessionId }: ChatInterfaceProps) => {
       }
 
       // Read the stream
+      let buffer = "";
+
+      // Read the stream
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+
+        if (done) {
+          // Process any remaining buffer
+          if (buffer.trim()) {
+            const lines = buffer.split("\n");
+            for (const line of lines) {
+              if (line.trim().startsWith("data:")) {
+                processLine(line);
+              }
+            }
+          }
+          break;
+        }
 
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n").filter((line) => line.startsWith("data:"));
+        buffer += chunk;
+
+        // Process complete lines
+        const lines = buffer.split("\n");
+        // Keep the last partial line in the buffer
+        buffer = lines.pop() || "";
 
         for (const line of lines) {
-          try {
-            const jsonStr = line.slice(5).trim(); // Remove "data:" prefix
-            if (!jsonStr) continue;
+          processLine(line);
+        }
+      }
 
-            const data = JSON.parse(jsonStr);
+      function processLine(line: string) {
+        if (!line.trim() || !line.startsWith("data:")) return;
 
-            if (data.token) {
-              // Update message content with new token
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantMessageId
-                    ? { ...m, content: m.content + data.token }
-                    : m
-                )
-              );
-            }
+        try {
+          const jsonStr = line.slice(5).trim(); // Remove "data:" prefix
+          if (!jsonStr) return;
+          if (jsonStr === "[DONE]") return; // Handle standard SSE done signal if present
 
-            if (data.error) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantMessageId
-                    ? { ...m, content: "Sorry, an error occurred: " + data.error }
-                    : m
-                )
-              );
-            }
-          } catch (parseError) {
-            // Skip malformed JSON lines
-            console.warn("Failed to parse SSE data:", line);
+          const data = JSON.parse(jsonStr);
+
+          if (data.token) {
+            // Update message content with new token
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMessageId
+                  ? { ...m, content: m.content + data.token }
+                  : m
+              )
+            );
           }
+
+          if (data.error) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMessageId
+                  ? { ...m, content: m.content + "\n\nError: " + data.error }
+                  : m
+              )
+            );
+          }
+        } catch (parseError) {
+          // Skip malformed JSON lines
+          console.warn("Failed to parse SSE data:", line);
         }
       }
     } catch (error) {
@@ -161,7 +190,45 @@ const ChatInterface = ({ sessionId }: ChatInterfaceProps) => {
                 : "glass rounded-bl-md"
                 }`}
             >
-              <p className="text-sm leading-relaxed">{message.content}</p>
+              <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // Style tables
+                    table: ({ node, ...props }) => (
+                      <div className="overflow-x-auto my-4 rounded-lg border border-border/50 bg-background/50">
+                        <table className="w-full text-sm text-left" {...props} />
+                      </div>
+                    ),
+                    thead: ({ node, ...props }) => (
+                      <thead className="text-xs uppercase bg-secondary/50 text-secondary-foreground font-semibold" {...props} />
+                    ),
+                    th: ({ node, ...props }) => (
+                      <th className="px-4 py-3 whitespace-nowrap border-b border-border/50" {...props} />
+                    ),
+                    td: ({ node, ...props }) => (
+                      <td className="px-4 py-3 border-b border-border/50 last:border-0" {...props} />
+                    ),
+                    // Style lists
+                    ul: ({ node, ...props }) => (
+                      <ul className="list-disc pl-5 space-y-1 my-2" {...props} />
+                    ),
+                    ol: ({ node, ...props }) => (
+                      <ol className="list-decimal pl-5 space-y-1 my-2" {...props} />
+                    ),
+                    // Style bold
+                    strong: ({ node, ...props }) => (
+                      <strong className="font-bold text-primary" {...props} />
+                    ),
+                    // Style links
+                    a: ({ node, ...props }) => (
+                      <a className="text-primary underline underline-offset-4 hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer" {...props} />
+                    ),
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
               <span className={`text-xs mt-2 block ${message.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                 {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>

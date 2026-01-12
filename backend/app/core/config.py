@@ -83,7 +83,7 @@ class Settings(BaseSettings):
     cosyvoice_voice: str = "default"  # Or path to reference audio for cloning
     
     # VAD settings
-    vad_threshold: float = 0.5  # Higher threshold = less sensitive to noise (0.0-1.0)
+    vad_threshold: float = 0.85  # Higher threshold = less sensitive to noise (0.0-1.0)
     vad_min_speech_duration: float = 0.25  # Minimum speech duration in seconds
 
     # Security
