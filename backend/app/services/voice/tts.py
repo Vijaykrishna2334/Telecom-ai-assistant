@@ -1,82 +1,69 @@
 """
-Text-to-Speech service using Piper.
-Note: This is a placeholder. Full implementation requires piper-tts installation.
+Text-to-Speech service using Kokoro TTS.
+Runs fully locally without cloud dependencies.
 """
-from typing import Optional
-
+import re
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.services.voice.kokoro_tts import KokoroTTSService
 
 logger = get_logger(__name__)
 
 
-class TTSService:
-    """Text-to-Speech service using Piper."""
-
-    def __init__(
-        self,
-        voice: Optional[str] = None,
-        sample_rate: Optional[int] = None,
-    ):
-        """
-        Initialize TTS service.
-
-        Args:
-            voice: Voice model to use
-            sample_rate: Audio sample rate
-        """
-        self.voice = voice or settings.tts_voice
-        self.sample_rate = sample_rate or settings.tts_sample_rate
-        self.model = None
-        logger.info("Initializing TTS service", voice=self.voice)
-
-    async def load_model(self) -> None:
-        """Load the Piper TTS model."""
-        try:
-            # Placeholder for actual model loading
-            # from piper import PiperVoice
-            # self.model = PiperVoice.load(self.voice)
-            logger.info("TTS model loaded", voice=self.voice)
-        except Exception as e:
-            logger.error("Failed to load TTS model", error=str(e))
-            raise
-
-    async def synthesize(self, text: str) -> bytes:
-        """
-        Synthesize speech from text.
-
-        Args:
-            text: Text to synthesize
-
-        Returns:
-            Audio bytes
-        """
-        logger.info("Synthesizing speech", text_length=len(text))
-
-        # Placeholder implementation
-        # In production, would use:
-        # audio_data = self.model.synthesize(text)
-        # return audio_data
-
-        # Return empty audio bytes as placeholder
-        return b""
-
-    async def synthesize_stream(self, text: str):
-        """
-        Synthesize speech from text as a stream.
-
-        Args:
-            text: Text to synthesize
-
-        Yields:
-            Audio chunks
-        """
-        logger.info("Starting streaming synthesis", text_length=len(text))
-
-        # Placeholder for streaming synthesis
-        # In production, would yield audio chunks
-        yield b""
+def sanitize_text_for_tts(text: str) -> str:
+    """
+    Clean text for TTS to avoid speaking symbols.
+    Converts symbols to spoken words.
+    
+    Args:
+        text: Raw text with potential symbols
+        
+    Returns:
+        Clean text suitable for speech synthesis
+    """
+    if not text:
+        return text
+    
+    # Replace currency symbols with words
+    text = text.replace("₹", "rupees ")
+    text = text.replace("$", "dollars ")
+    text = text.replace("€", "euros ")
+    text = text.replace("£", "pounds ")
+    
+    # Replace emoji symbols with nothing or words
+    text = text.replace("❌", "")
+    text = text.replace("✅", "")
+    text = text.replace("📱", "")
+    text = text.replace("🚨", "")
+    text = text.replace("📞", "")
+    text = text.replace("📋", "")
+    text = text.replace("✓", "")
+    text = text.replace("✗", "")
+    text = text.replace("→", "to")
+    text = text.replace("←", "from")
+    text = text.replace("•", "")
+    text = text.replace("·", "")
+    
+    # Replace markdown symbols
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Remove **bold**
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)  # Remove *italic*
+    text = re.sub(r'#{1,6}\s*', '', text)  # Remove markdown headers
+    text = re.sub(r'\|[^\n]+\|', '', text)  # Remove table rows
+    text = re.sub(r'-{3,}', '', text)  # Remove horizontal rules
+    
+    # Replace pipe characters (from tables)
+    text = text.replace("|", "")
+    
+    # Clean up multiple spaces and newlines
+    text = re.sub(r'\n\s*\n', '\n', text)
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = text.strip()
+    
+    return text
 
 
-# Global TTS service instance
-tts_service = TTSService()
+# Global TTS service instance using Kokoro
+tts_service = KokoroTTSService(
+    voice=settings.kokoro_voice,
+    lang_code=settings.kokoro_lang_code
+)

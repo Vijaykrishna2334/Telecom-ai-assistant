@@ -3,10 +3,11 @@ Voice processing pipeline integrating STT, TTS, and VAD.
 """
 from typing import AsyncGenerator, Optional
 
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.services.voice.stt import stt_service
-from app.services.voice.tts import tts_service
 from app.services.voice.vad import vad_service
+from app.services.voice.tts import tts_service
 
 logger = get_logger(__name__)
 
@@ -28,6 +29,18 @@ class VoicePipeline:
         await self.vad.load_model()
         logger.info("Voice pipeline initialized")
 
+    async def detect_speech(self, audio_chunk: bytes) -> bool:
+        """
+        Detect if audio chunk contains speech.
+        
+        Args:
+            audio_chunk: Audio bytes (16-bit PCM)
+            
+        Returns:
+            True if speech detected, False otherwise
+        """
+        return await self.vad.detect_speech(audio_chunk)
+
     async def process_audio_input(
         self, audio_data: bytes, language: str = "en"
     ) -> Optional[str]:
@@ -41,13 +54,11 @@ class VoicePipeline:
         Returns:
             Transcribed text or None if no speech detected
         """
-        # Check for speech
-        has_speech = await self.vad.detect_speech(audio_data)
-        if not has_speech:
-            logger.info("No speech detected in audio")
-            return None
-
-        # Transcribe audio
+        # Skip VAD check - we already detected speech in real-time chunks
+        # The buffer was accumulated BECAUSE chunks contained speech
+        # No need to re-validate the entire buffer with Silero-VAD
+        
+        # Transcribe audio directly
         result = await self.stt.transcribe(audio_data, language)
         return result.get("text")
 

@@ -1,13 +1,16 @@
 """
 Main FastAPI application entry point for Telecom AI Assistant.
 """
+# NOTE: STT is hardcoded to CPU in stt.py - no global CUDA blocking needed
+# This allows Kokoro TTS to use GPU for faster synthesis
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import assistants, calls, chat, health, voice
-from app.api.websockets import chat_ws, voice_ws
+from app.api.routes import assistants, calls, chat, chat_stream, health, voice, knowledge
+from app.api.websockets import chat_ws, voice_ws, realtime_voice
 from app.core import configure_logging, get_logger, settings
 from app.models import close_db, init_db
 from app.services.cache import cache_service
@@ -43,13 +46,25 @@ async def lifespan(app: FastAPI):
         await init_db()
         logger.info("Database initialized")
         
-        # Connect to Redis
-        await cache_service.connect()
-        logger.info("Cache service connected")
+        # Connect to Redis (optional - app works without it)
+        try:
+            await cache_service.connect()
+            logger.info("Cache service connected")
+        except Exception as cache_error:
+            logger.warning("Redis not available, running without cache", error=str(cache_error))
         
         # Initialize knowledge base
         await knowledge_base.initialize()
         logger.info("Knowledge base initialized")
+        
+        # Auto-ingest knowledge files on startup (ensures latest files are indexed)
+        try:
+            ingest_result = await knowledge_base.ingest_knowledge_files()
+            logger.info("Knowledge files auto-ingested", 
+                       files=ingest_result.get("files_processed", 0),
+                       chunks=ingest_result.get("chunks_created", 0))
+        except Exception as ingest_error:
+            logger.warning("Auto-ingest failed, using existing index", error=str(ingest_error))
         
         # Initialize voice pipeline
         await voice_pipeline.initialize()
@@ -106,13 +121,16 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, tags=["Health"])
 app.include_router(chat.router, prefix=settings.api_prefix, tags=["Chat"])
+app.include_router(chat_stream.router, prefix=settings.api_prefix, tags=["Chat"])
 app.include_router(voice.router, prefix=settings.api_prefix, tags=["Voice"])
 app.include_router(assistants.router, prefix=settings.api_prefix, tags=["Assistants"])
 app.include_router(calls.router, prefix=settings.api_prefix, tags=["Plans"])
+app.include_router(knowledge.router, prefix=f"{settings.api_prefix}/knowledge", tags=["Knowledge Base"])
 
 # Include WebSocket routers
 app.include_router(chat_ws.router, tags=["WebSocket"])
 app.include_router(voice_ws.router, tags=["WebSocket"])
+app.include_router(realtime_voice.router, tags=["WebSocket"])
 
 
 @app.get("/")

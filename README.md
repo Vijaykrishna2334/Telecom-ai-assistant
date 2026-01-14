@@ -1,321 +1,452 @@
-# Telecom AI Assistant
+# 🤖 Telecom AI Voice Assistant
 
-**Intelligent Telecommunication Support Bot with Voice AI**
+An intelligent AI-powered customer service assistant for Reliance Jio, featuring voice interaction, RAG-based knowledge retrieval, and real-time chat capabilities.
 
-A complete, production-ready AI application that automates customer interactions for telecom service providers using open-source LLMs, RAG, and real-time voice processing.
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green)
+![Ollama](https://img.shields.io/badge/LLM-Ollama-orange)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109.0-009688.svg?style=flat&logo=FastAPI&logoColor=white)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-18.2.0-61DAFB.svg?style=flat&logo=React&logoColor=black)](https://reactjs.org)
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg?style=flat&logo=Python&logoColor=white)](https://www.python.org)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg?style=flat&logo=Docker&logoColor=white)](https://www.docker.com)
+## 🌟 Features
 
-## 🚀 Features
+### 💬 Chat Interface
+- Real-time text chat with AI assistant
+- Streaming responses (token-by-token)
+- Session management and chat history
+- WebSocket support for instant messaging
 
-### Core Capabilities
-- **🤖 AI-Powered Chat**: Context-aware responses using Ollama LLM (Llama 3.2 / Mistral 7B)
-- **🎙️ Voice Support**: Real-time voice interactions with STT (Faster-Whisper) and TTS (Piper)
-- **📚 RAG Engine**: Semantic search with ChromaDB for accurate information retrieval
-- **🔧 Function Calling**: Automated handling of plan queries, billing, network diagnostics
-- **💬 WebSocket Support**: Real-time streaming for both text and voice
-- **🔒 Production Ready**: Security, logging, caching, database management
+### 🎙️ Voice Interface
+- **Speech-to-Text (STT)**: Faster-Whisper (Whisper base.en model)
+- **Text-to-Speech (TTS)**: Kokoro-82M (lightweight, high-quality)
+- **Voice Activity Detection (VAD)**: Silero-VAD (neural network-based)
+- Real-time voice conversations
 
-### Telecom-Specific Features
-- Plan recommendations and comparisons
-- Billing inquiry and payment processing
-- Network coverage verification
-- Speed tests and diagnostics
-- Troubleshooting assistance
-- Human agent escalation
+### 🔍 RAG (Retrieval-Augmented Generation)
+- **Hybrid Search**: Vector (BGE embeddings) + BM25 keyword search
+- **CRAG**: Corrective RAG with relevance grading
+- **Knowledge Base**: Comprehensive Jio plans, services, and FAQs
+- **ChromaDB**: Vector database for efficient retrieval
+
+### 📊 Supported Jio Services
+- ✅ Prepaid Mobile Plans
+- ✅ Postpaid Mobile Plans
+- ✅ JioFiber Broadband
+- ✅ JioAirFiber (5G Wireless Broadband)
+- ✅ International Roaming
+- ✅ ISD Calling Rates
+- ✅ Digital Services (JioTV, JioCinema, etc.)
+
+---
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Frontend (React)                         │
-│                   TypeScript + Vite + Tailwind                  │
-└────────────────────────┬────────────────────────────────────────┘
-                         │ REST + WebSocket
-┌────────────────────────▼────────────────────────────────────────┐
-│                     Backend (FastAPI)                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
-│  │     API      │  │  WebSocket   │  │   Services   │         │
-│  │   Routes     │  │   Handlers   │  │   (LLM/RAG)  │         │
-│  └──────────────┘  └──────────────┘  └──────────────┘         │
-└────┬─────────┬──────────┬──────────┬──────────┬────────────────┘
-     │         │          │          │          │
-     ▼         ▼          ▼          ▼          ▼
-┌─────────┐ ┌──────┐ ┌────────┐ ┌────────┐ ┌──────────┐
-│PostgreSQL│ │Redis │ │ChromaDB│ │ Ollama │ │  Voice   │
-│    DB    │ │Cache │ │ Vector │ │  LLM   │ │Processing│
-└─────────┘ └──────┘ └────────┘ └────────┘ └──────────┘
+│                    telecom-voice-companion-main                  │
+├─────────────────────────────────────────────────────────────────┤
+│                         Backend (FastAPI)                        │
+├──────────────┬──────────────┬──────────────┬────────────────────┤
+│   Chat API   │   Voice API  │   RAG API    │   WebSockets       │
+├──────────────┼──────────────┼──────────────┼────────────────────┤
+│              │              │              │                    │
+│  Ollama LLM  │ Whisper STT  │  ChromaDB    │  Silero VAD        │
+│ (llama3.1:8b)│ (base.en)    │  (Vector DB) │                    │
+│              │              │              │                    │
+│              │ Kokoro TTS   │  BM25 Index  │                    │
+│              │ (82M model)  │  (Keyword)   │                    │
+└──────────────┴──────────────┴──────────────┴────────────────────┘
 ```
+
+---
+
+## 🛠️ Tech Stack
+
+### Backend
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **Framework** | FastAPI 0.109 | Async Python web framework |
+| **LLM** | Ollama + llama3.1:8b | Local LLM inference |
+| **STT** | Faster-Whisper (base.en) | Speech-to-Text using Whisper |
+| **TTS** | Kokoro-82M | Lightweight 82M param TTS model |
+| **VAD** | Silero-VAD | Neural network voice activity detection |
+| **Embeddings** | BGE-base-en-v1.5 | State-of-the-art embedding model |
+| **Vector DB** | ChromaDB | Vector database for RAG |
+| **Search** | BM25 + Vector | Hybrid search (RRF fusion) |
+| **Database** | PostgreSQL | Session and chat history storage |
+| **Cache** | Redis | Response caching |
+
+### Frontend
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **Framework** | React + Vite | Modern frontend tooling |
+| **Styling** | TailwindCSS | Utility-first CSS |
+| **UI** | shadcn/ui | Beautiful component library |
+| **Voice** | Web Audio API | Browser audio recording |
+
+---
 
 ## 📋 Prerequisites
 
-- **Docker** and **Docker Compose**
-- **8GB RAM minimum** (16GB recommended)
-- **10GB disk space**
-- **GPU optional** (for faster LLM inference)
+### Required Software
+- **Python 3.12+** (required for Kokoro TTS compatibility)
+- **Node.js 18+** (for frontend)
+- **Ollama** (for local LLM)
+- **PostgreSQL** (optional, for persistence)
+- **Redis** (optional, for caching)
+
+### For GPU Acceleration (Recommended for TTS)
+> ⚡ **CUDA is highly recommended for Kokoro TTS** - provides 5-10x faster audio generation
+
+```bash
+# Check if CUDA is available
+python -c "import torch; print('CUDA:', torch.cuda.is_available())"
+```
+
+**CUDA Setup:**
+1. Install [NVIDIA CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-downloads)
+2. Install [cuDNN](https://developer.nvidia.com/cudnn)
+3. Reinstall PyTorch with CUDA:
+```bash
+pip uninstall torch torchaudio
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+---
 
 ## 🚀 Quick Start
 
-### 1. Clone the Repository
+### 1. Clone Repository
 ```bash
-git clone https://github.com/Vijaykrishna2334/Telecom-ai-assistant.git
+git clone https://github.com/your-username/Telecom-ai-assistant.git
 cd Telecom-ai-assistant
 ```
 
-### 2. Configure Environment
+### 2. Install Ollama & Pull Model
 ```bash
-cp .env.example .env
+# Install from https://ollama.ai
+ollama pull llama3.1:8b
+```
+
+### 3. Setup Backend
+```bash
+cd backend
+
+# Create virtual environment
+python -m venv venv
+
+# Activate (Windows)
+venv\Scripts\activate
+
+# Activate (Linux/Mac)
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# For CUDA/GPU support (recommended for Kokoro TTS):
+pip uninstall torch torchaudio -y
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+### 4. Configure Environment
+```bash
+# Copy example env
+copy .env.example .env  # Windows
+cp .env.example .env    # Linux/Mac
+
 # Edit .env with your settings
 ```
 
-### 3. Start Services
-```bash
-# Start all services
-docker-compose up -d
+**Key `.env` settings:**
+```ini
+# LLM
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b
 
-# Download LLM model (first time only)
-docker exec -it telecom-ai-assistant-ollama-1 ollama pull llama3.2:3b
+# Voice (Both STT and TTS auto-detect GPU/CUDA)
+STT_MODEL=base.en
+# Device is auto-detected - uses CUDA if available
 
-# View logs
-docker-compose logs -f
+# Kokoro TTS (auto-detects GPU)
+KOKORO_VOICE=af_heart
+KOKORO_LANG_CODE=a
 ```
 
-### 4. Access the Application
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8080
-- **API Docs**: http://localhost:8080/api/v1/docs
-- **Health Check**: http://localhost:8080/health
-
-## 🛠️ Development Setup
-
-### Backend Development
+### 5. Start Backend
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-# Run locally
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 ```
 
-### Frontend Development
+Backend runs at: **http://localhost:8080**
+
+### 6. Setup Frontend
 ```bash
-cd frontend
+cd telecom-voice-companion-main
+
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
-### Run Tests
-```bash
-# Backend tests
-cd backend
-pytest tests/ -v --cov=app
+Frontend runs at: **http://localhost:5173**
 
-# Frontend tests
-cd frontend
-npm test
-```
-
-## 📊 Technology Stack
-
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Backend** | FastAPI | High-performance async API |
-| **Frontend** | React + TypeScript | Modern reactive UI |
-| **LLM Runtime** | Ollama | Local LLM inference |
-| **Models** | Llama 3.2 3B / Mistral 7B | Language understanding |
-| **Vector DB** | ChromaDB | Semantic search |
-| **Database** | PostgreSQL | Persistent data storage |
-| **Cache** | Redis | Performance optimization |
-| **STT** | Faster-Whisper | Speech-to-text |
-| **TTS** | Piper | Text-to-speech |
-| **VAD** | Silero VAD | Voice activity detection |
+---
 
 ## 📁 Project Structure
 
 ```
-telecom-ai-assistant/
-├── backend/                 # FastAPI backend
+Telecom-ai-assistant/
+├── backend/                    # FastAPI backend
 │   ├── app/
-│   │   ├── api/            # REST & WebSocket endpoints
-│   │   ├── core/           # Config, logging, security
-│   │   ├── models/         # Database models & schemas
-│   │   ├── services/       # Business logic
-│   │   │   ├── llm/        # Ollama integration
-│   │   │   ├── rag/        # ChromaDB & embeddings
-│   │   │   ├── voice/      # STT, TTS, VAD
-│   │   │   └── telecom/    # Telecom operations
-│   │   └── main.py         # Application entry point
-│   ├── tests/              # Unit tests
-│   ├── requirements.txt    # Python dependencies
+│   │   ├── api/               # API routes
+│   │   │   ├── routes/        # REST endpoints
+│   │   │   └── websockets/    # WebSocket handlers
+│   │   ├── core/              # Config, logging, security
+│   │   ├── models/            # Database models
+│   │   └── services/
+│   │       ├── llm/           # LLM (Ollama) integration
+│   │       ├── rag/           # RAG pipeline (CRAG)
+│   │       │   ├── crag_chain.py      # CRAG orchestrator
+│   │       │   ├── hybrid_retriever.py # Vector + BM25
+│   │       │   └── ingestion.py       # Document chunking
+│   │       └── voice/         # Voice processing
+│   │           ├── stt.py     # Faster-Whisper STT
+│   │           ├── kokoro_tts.py  # Kokoro TTS
+│   │           └── vad.py     # Silero VAD
+│   ├── requirements.txt
 │   └── Dockerfile
-├── frontend/               # React frontend
+│
+├── knowledge/                 # RAG knowledge base
+│   ├── plans/                # Jio plan documents
+│   ├── faqs/                 # FAQ documents
+│   ├── services/             # Service information
+│   └── policies/             # Terms, conditions
+│
+├── telecom-voice-companion-main/  # React frontend
 │   ├── src/
-│   │   ├── components/     # UI components
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── services/       # API clients
-│   │   └── types/          # TypeScript types
-│   ├── package.json
-│   └── Dockerfile
-├── knowledge/              # Knowledge base
-│   ├── plans/             # Telecom plans
-│   ├── faqs/              # FAQs
-│   ├── troubleshooting/   # Guides
-│   └── policies/          # Policies
-├── scripts/               # Utility scripts
-├── docker-compose.yml     # Service orchestration
-└── .env.example           # Environment template
+│   │   ├── components/       # UI components
+│   │   ├── pages/           # Page components
+│   │   └── hooks/           # Custom hooks
+│   └── package.json
+│
+├── docker-compose.yml        # Docker orchestration
+└── README.md
 ```
-
-## 🔧 Configuration
-
-Key environment variables in `.env`:
-
-```bash
-# Application
-APP_NAME=Telecom AI Assistant
-DEBUG=false
-SECRET_KEY=your-secret-key-here
-
-# Ollama
-OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_MODEL=llama3.2:3b
-
-# Database
-DATABASE_URL=postgresql://postgres:postgres@db:5432/telecom_ai
-
-# Redis
-REDIS_URL=redis://redis:6379/0
-
-# Voice Processing
-STT_MODEL=base
-TTS_VOICE=en_US-lessac-medium
-```
-
-## 🎯 API Endpoints
-
-### REST API
-```
-GET  /health                          # Health check
-GET  /ready                           # Readiness check
-POST /api/v1/chat                     # Send chat message
-GET  /api/v1/plans                    # List telecom plans
-GET  /api/v1/plans/{id}               # Get plan details
-POST /api/v1/voice/sessions           # Create voice session
-GET  /api/v1/voice/sessions/{id}      # Get session details
-DELETE /api/v1/voice/sessions/{id}    # End voice session
-```
-
-### WebSocket
-```
-/ws/chat/{session_id}                 # Real-time text chat
-/ws/voice/{session_id}                # Real-time voice streaming
-```
-
-## 🧪 Testing
-
-### Run All Tests
-```bash
-make test
-```
-
-### Test Coverage
-```bash
-cd backend
-pytest --cov=app --cov-report=html
-open htmlcov/index.html
-```
-
-## 📝 Code Quality
-
-### Linting & Formatting
-```bash
-# Backend
-make lint
-make format
-
-# Or manually
-cd backend
-black app/ tests/
-flake8 app/ tests/
-mypy app/
-```
-
-## 🐛 Troubleshooting
-
-### Ollama Model Issues
-```bash
-# Pull model manually
-docker exec -it telecom-ai-assistant-ollama-1 ollama pull llama3.2:3b
-
-# List available models
-docker exec -it telecom-ai-assistant-ollama-1 ollama list
-```
-
-### Database Connection Issues
-```bash
-# Reset database
-docker-compose down -v
-docker-compose up -d db
-python scripts/init_db.py
-```
-
-### Port Conflicts
-If ports are in use, edit `docker-compose.yml`:
-```yaml
-ports:
-  - "3001:80"    # Change frontend port
-  - "8081:8000"  # Change backend port
-```
-
-## 🚀 Deployment
-
-### Production Checklist
-- [ ] Set strong `SECRET_KEY`
-- [ ] Set `DEBUG=false`
-- [ ] Configure CORS origins
-- [ ] Set up SSL/TLS certificates
-- [ ] Enable monitoring and logging
-- [ ] Configure backup strategy
-- [ ] Set resource limits
-- [ ] Use production LLM model (Mistral 7B)
-
-### Docker Production
-```bash
-docker-compose -f docker-compose.yml up -d
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🙏 Acknowledgments
-
-- **Ollama** for LLM runtime
-- **FastAPI** for the excellent web framework
-- **ChromaDB** for vector storage
-- **OpenAI Whisper** team for STT models
-- **Piper** team for TTS
-
-## 📞 Support
-
-- **Documentation**: See `/docs` directory
-- **Issues**: GitHub Issues
-- **Email**: support@telecom-ai.example.com
 
 ---
 
-**Built with ❤️ for the open-source community**
+## 🎙️ Voice Components
+
+### Speech-to-Text (Faster-Whisper)
+- **Model**: `base.en` (English optimized)
+- **Device**: Auto-detects CUDA GPU (falls back to CPU)
+- **Compute Type**: `float16` (GPU) or `int8` (CPU)
+- **Features**: VAD filtering, beam search, Jio vocabulary hints
+
+```python
+# Auto-detection in stt.py
+# Uses CUDA GPU if available: RTX 4090 → ~3x faster transcription
+# Falls back to CPU with int8 quantization
+```
+
+### Text-to-Speech (Kokoro-82M)
+- **Model**: Kokoro-82M (82 million parameters)
+- **Voice**: `af_heart` (American female)
+- **Sample Rate**: 24kHz
+- **Device**: Auto-detects GPU (CUDA) for faster synthesis
+
+```python
+# Configuration in config.py
+kokoro_voice: str = "af_heart"
+kokoro_lang_code: str = "a"  # 'a' = American English
+```
+
+**Available Voices:**
+| Voice Code | Description |
+|------------|-------------|
+| `af_heart` | American Female (warm) |
+| `af_bella` | American Female (professional) |
+| `am_adam` | American Male |
+| `bf_emma` | British Female |
+| `bm_george` | British Male |
+
+### Voice Activity Detection (Silero-VAD)
+- **Model**: Silero-VAD (neural network)
+- **Threshold**: 0.85 (adjustable)
+- **Fallback**: Energy-based detection
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API URL |
+| `OLLAMA_MODEL` | `llama3.1:8b` | LLM model name |
+| `STT_MODEL` | `base.en` | Whisper model size |
+| `STT_DEVICE` | `cpu` | STT device (cpu/cuda) |
+| `KOKORO_VOICE` | `af_heart` | TTS voice |
+| `VAD_THRESHOLD` | `0.85` | VAD sensitivity |
+| `CRAG_TOP_K` | `10` | Documents to retrieve |
+| `DATABASE_URL` | `postgresql://...` | PostgreSQL connection |
+| `REDIS_URL` | `redis://localhost:6379` | Redis connection |
+
+---
+
+## 🐳 Docker Deployment
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f backend
+
+# Stop services
+docker-compose down
+```
+
+---
+
+## 📚 API Endpoints
+
+### Chat
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/chat` | Send message, get response |
+| POST | `/api/v1/chat/stream` | Streaming response (SSE) |
+| GET | `/api/v1/chat/history/{session_id}` | Get chat history |
+
+### Voice
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| WS | `/api/v1/ws/voice` | Real-time voice WebSocket |
+| POST | `/api/v1/voice/transcribe` | Transcribe audio |
+| POST | `/api/v1/voice/synthesize` | Generate speech |
+
+### Knowledge
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/knowledge/search` | Search knowledge base |
+| POST | `/api/v1/knowledge/ingest` | Ingest documents |
+
+---
+
+## 🧪 Testing
+
+```bash
+cd backend
+
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=app
+
+# Run specific test
+pytest tests/test_rag.py -v
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Ollama Connection Error
+```
+Error: Cannot connect to Ollama
+```
+**Solution:** Ensure Ollama is running:
+```bash
+ollama serve
+# In another terminal:
+ollama pull llama3.1:8b
+```
+
+### CUDA/GPU Not Detected
+```
+CUDA available: False
+```
+**Solution:** Install PyTorch with CUDA support:
+```bash
+pip uninstall torch torchaudio -y
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+### Kokoro TTS Installation Error
+```
+ModuleNotFoundError: No module named 'kokoro'
+```
+**Solution:**
+```bash
+pip install 'kokoro>=0.9.2' soundfile
+```
+
+### ChromaDB Errors
+```
+Error: Collection not found
+```
+**Solution:** Knowledge base auto-ingests on startup. If issues persist:
+```bash
+cd backend
+python reingest_knowledge.py
+```
+
+### Port Already in Use
+```
+Error: Address already in use :8080
+```
+**Solution:** Change port in `.env`:
+```ini
+PORT=8081
+```
+
+### FFmpeg Warnings (Can Ignore)
+```
+Failed to load FFmpeg extension
+```
+This is a non-critical warning from torchaudio. TTS will still work.
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Ollama](https://ollama.ai) - Local LLM inference
+- [Faster-Whisper](https://github.com/guillaumekln/faster-whisper) - Fast Whisper implementation
+- [Kokoro TTS](https://github.com/hexgrad/kokoro) - Lightweight TTS model
+- [Silero-VAD](https://github.com/snakers4/silero-vad) - Voice activity detection
+- [ChromaDB](https://www.trychroma.com/) - Vector database
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
+
+---
+
+## 📞 Support
+
+For issues or questions:
+- Create a [GitHub Issue](https://github.com/your-username/Telecom-ai-assistant/issues)
+- Email: your-email@example.com
+
+---
+
+**Built with ❤️ for better customer service**

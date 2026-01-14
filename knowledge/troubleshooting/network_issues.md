@@ -1,173 +1,153 @@
-# Network Troubleshooting Guide
+# Jio Network Troubleshooting Guide
 
-## No Signal or Poor Signal
+## Mobile Data Not Working (Jio SIM)
 
-### Check These First
-1. **Airplane Mode**: Ensure airplane mode is OFF
-2. **Network Selection**: Make sure you're not in manual network selection mode
-3. **SIM Card**: Ensure SIM card is properly inserted
-4. **Location**: Move to a different location to test signal
+### Quick Fixes for Mobile Data Issues
+If you have signal but mobile data is not working on your Jio SIM:
 
-### Restart Your Device
-1. Power off your device completely
-2. Wait 30 seconds
-3. Remove and reinsert SIM card
-4. Power on and wait for connection
+1. **Toggle Airplane Mode**
+   - Turn ON Airplane Mode for 10 seconds
+   - Turn it OFF
+   - Wait for network to reconnect
 
-### Check for Outages
-- Visit our status page
-- Check if others in your area are affected
-- Contact support if localized to your device
+2. **Toggle Mobile Data**
+   - Go to Settings → Mobile Data
+   - Turn OFF mobile data
+   - Wait 5 seconds, turn it back ON
 
-## Slow Data Speeds
+3. **Restart Your Phone**
+   - Power off your phone completely
+   - Wait 30 seconds
+   - Power it back on
 
-### Possible Causes
-- **Data Cap Reached**: Check if you've exceeded your monthly data allowance
-- **Network Congestion**: High usage during peak hours
-- **Weak Signal**: Move closer to a window or higher location
-- **Background Apps**: Close unnecessary apps using data
-
-### Troubleshooting Steps
-1. Run a speed test in the app
-2. Toggle airplane mode on/off
-3. Reset network settings
-4. Clear app cache
-5. Update device software
+4. **Check Data Balance**
+   - Dial *333# to check data balance
+   - Open MyJio App → Check data usage
+   - If data exhausted, recharge to restore
 
 ### Network Settings Reset
-**iPhone:**
-- Settings > General > Reset > Reset Network Settings
+If basic steps don't work:
+1. Go to Settings → Network & Internet
+2. Tap "Reset Network Settings"
+3. Confirm reset
+4. Restart phone after reset
 
-**Android:**
-- Settings > System > Reset Options > Reset WiFi, Mobile & Bluetooth
+### APN Settings (Jio)
+If mobile data still not working, check APN:
+1. Go to Settings → Mobile Network → Access Point Names
+2. Jio APN should be: **jionet**
+3. If missing, tap "+" to add:
+   - Name: Jio 4G
+   - APN: jionet
+   - Leave other fields blank/default
+4. Save and select this APN
 
-## Cannot Make or Receive Calls
+### SIM Card Issues
+If showing signal but no data:
+1. Remove SIM card carefully
+2. Clean the gold contacts with soft cloth
+3. Reinsert SIM properly
+4. Restart phone
 
-### Quick Fixes
-1. Check signal strength (need at least 2 bars)
-2. Ensure you have adequate account balance
-3. Verify caller ID settings aren't blocking calls
-4. Test with a different phone if available
+### Check for Network Outage
+1. Open MyJio App → JioCare
+2. Check if there's any network outage in your area
+3. Or call 198 (toll-free) to check outage status
 
-### Advanced Troubleshooting
-1. Check for call forwarding settings
-2. Verify VoLTE settings (if applicable)
-3. Test in safe mode (Android)
-4. Check for carrier settings update
+### When to Contact Support
+Call **198** or **1800-88-99999** if:
+- Issue persists after all troubleshooting steps
+- SIM shows "No Service" or "Emergency Only"
+- Data not working for more than 2 hours
+- APN reset doesn't help
 
-## Cannot Send or Receive Text Messages
+---
 
-### Common Issues
-- **MMS Settings**: Ensure mobile data is enabled for MMS
-- **Message Center Number**: Verify it's correctly configured
-- **Storage**: Check if phone storage is full
-- **Blocked Contacts**: Ensure contact isn't blocked
+# JioFiber & JioAirFiber Troubleshooting Guide
 
-### SMS/MMS Settings
-Contact support for correct APN and MMS settings for your device.
+## Internet Not Working
 
-## International Roaming Issues
+### Step 1: Basic Checks
+1. Check if power light is ON on router
+2. Verify LAN cable is connected properly
+3. Check if other devices can connect
 
-### Before Traveling
-- Enable international roaming on your account
-- Check roaming rates for your destination
-- Consider purchasing an international plan
-- Ensure device is unlocked (if using local SIM)
+### Step 2: Restart Your Router
+1. Turn OFF the router (unplug power)
+2. Wait for **30 seconds**
+3. Turn it back ON
+4. Wait 2-3 minutes for connection
 
-### While Abroad
-- Manually select a network if automatic doesn't work
-- Turn roaming on in device settings
-- Restart device after arriving
-- Check for roaming data blocks on your account
+### Step 3: Use MyJio App Diagnostics
+1. Open MyJio App
+2. Go to **Fiber** or **Home** tab
+3. Tap **JioCare** > **Run Diagnostics**
+4. If issues found, tap **Fix Now**
+5. Follow on-screen instructions
 
-## WiFi Calling Issues
+## Slow Internet Speed
 
-### Setup Requirements
-- Compatible device
-- Feature enabled on account
-- Stable WiFi connection (minimum 1 Mbps)
-- WiFi calling enabled in device settings
+### Check 1: Data Limit
+- Open MyJio App → Check data usage
+- JioFiber FUP: 3300 GB/month
+- JioAirFiber FUP: 1000 GB/month
+- After FUP, speed drops to 1 Mbps
 
-### Troubleshooting
-1. Verify WiFi calling is active on your account
-2. Restart WiFi router
-3. Toggle WiFi calling off/on in settings
-4. Update device software
-5. Re-enter emergency address
+### Check 2: WiFi vs Wired
+- Connect laptop directly with LAN cable
+- Run speed test (fast.com)
+- If wired is fast, WiFi is the issue
 
-## 5G Connection Issues
+### Check 3: Use 5 GHz WiFi
+- 5 GHz SSID = Faster but shorter range
+- 2.4 GHz SSID = Slower but longer range
+- Connect to 5 GHz for better speed
 
-### 5G Not Available
-- Check if your plan includes 5G
-- Verify device is 5G capable
-- Confirm 5G coverage in your area
-- Enable 5G in network settings
+### Check 4: Router Placement
+- Keep router in open, elevated area
+- Away from walls, microwaves, metal objects
+- Center of home is best
 
-### Switching Between 5G and LTE
-Some devices can be set to prefer 5G or LTE:
-- Settings > Mobile Network > Preferred Network Type
-- Choose between 5G, LTE, or automatic
+## WiFi Connected But No Internet
 
-## VoLTE (Voice over LTE) Issues
+1. Restart router (30 sec OFF, then ON)
+2. Forget and reconnect to WiFi
+3. Check if bill is paid
+4. Run diagnostics in MyJio App
 
-### Benefits of VoLTE
-- HD voice quality
-- Faster call setup
-- Simultaneous voice and data
+## JioAirFiber Specific Issues
 
-### Troubleshooting
-1. Ensure VoLTE is supported on your device
-2. Enable in Settings > Mobile Network > VoLTE
-3. May require SIM card update - visit a store
-4. Check that account has VoLTE provisioning
+### Outdoor Unit Light Colors
+| Light | Meaning |
+|-------|---------|
+| Solid Green | Good connection |
+| Blinking Green | Connecting |
+| Red | No signal or issue |
 
-## Device Not Recognized on Network
+### Signal Issues
+- If red light appears, call 1800 896 9999
+- Weather can affect 5G signal temporarily
+- Technician may need to adjust antenna
 
-### Possible Solutions
-1. **Update APN Settings**: Get correct settings from support
-2. **Provision Device**: May need to be added to network
-3. **Check IMEI**: Ensure device is not blacklisted
-4. **SIM Compatibility**: Verify SIM size is correct
+## Speed Test Tips
+1. Use **fast.com** or **speedtest.net**
+2. Close other apps/tabs
+3. Test both WiFi and wired
+4. Test at different times of day
 
-## Emergency: No Service at All
+## When to Call Support
 
-### Immediate Steps
-1. Restart device
-2. Reseat SIM card
-3. Check account status (payment current?)
-4. Try SIM in another device
-5. Contact support immediately
+Call **1800 896 9999** if:
+- Router lights all OFF after restart
+- Red light on outdoor unit (AirFiber)
+- Speed below 50% of plan even with LAN cable
+- Internet down for more than 1 hour
 
-### If Nothing Works
-- Visit a retail location with your device
-- We can test with a different SIM
-- May need device repair or replacement
-- Check warranty status
+## Request Engineer Visit
 
-## General Tips for Best Performance
-
-### Optimize Your Connection
-- Keep device software updated
-- Clear cache regularly
-- Manage background data usage
-- Use WiFi when available for large downloads
-- Position device for best signal reception
-
-### Signal Boosting
-- Move to higher ground or near windows
-- Avoid basement locations
-- Consider a signal booster for home (available for purchase)
-- External antenna for vehicles
-
-## When to Contact Support
-
-Contact us if:
-- Issue persists after troubleshooting
-- Problem occurs across multiple devices
-- You suspect account or billing issues
-- You need help with advanced settings
-- Issue occurs in area with expected coverage
-
-**Support Hours**: 24/7
-**Phone**: 1-800-TELECOM
-**Chat**: Available in app or website
+Through MyJio App:
+1. Open MyJio App → JioCare
+2. Select "Internet Not Working"
+3. Run Diagnostics first
+4. If unresolved, tap "Book Engineer Visit"
+5. Choose time slot

@@ -66,11 +66,11 @@ async def chat_websocket(websocket: WebSocket, session_id: str) -> None:
                 context=context if context else None,
             )
 
-            # Stream response from LLM
+            # Stream response from Ollama LLM
             response_text = ""
-            async for chunk in await ollama_client.chat(
-                messages=messages, stream=True
-            ):
+            chat_gen = await ollama_client.chat(messages=messages, stream=True)
+
+            async for chunk in chat_gen:
                 response_text += chunk
                 await manager.send_message(chunk, session_id)
 
