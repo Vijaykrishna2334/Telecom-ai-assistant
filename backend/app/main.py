@@ -1,6 +1,9 @@
 """
 Main FastAPI application entry point for Telecom AI Assistant.
 """
+# NOTE: STT is hardcoded to CPU in stt.py - no global CUDA blocking needed
+# This allows Kokoro TTS to use GPU for faster synthesis
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI

@@ -37,8 +37,9 @@ async def generate_stream(
     full_response = ""
     
     try:
-        # Stream tokens from Ollama
+        # Stream tokens from Ollama LLM
         stream_generator = await ollama_client.chat(messages=messages, stream=True)
+
         async for token in stream_generator:
             full_response += token
             # Format as SSE data
@@ -91,7 +92,10 @@ async def stream_chat(request: ChatRequest) -> StreamingResponse:
         )
 
         # Get relevant context from knowledge base
-        context = await knowledge_base.get_context_for_query(request.message)
+        context = await knowledge_base.get_context_for_query(
+            request.message,
+            conversation_history=request.history
+        )
 
         # Create prompt with context and history
         messages = create_chat_prompt(

@@ -48,7 +48,7 @@ const ChatInterface = ({ sessionId }: ChatInterfaceProps) => {
       timestamp: new Date(),
     };
 
-    // Create placeholder for streaming response
+    // Create placeholder for response
     const assistantMessageId = (Date.now() + 1).toString();
     const assistantMessage: Message = {
       id: assistantMessageId,
@@ -62,15 +62,17 @@ const ChatInterface = ({ sessionId }: ChatInterfaceProps) => {
     setInputValue("");
     setIsTyping(true);
 
-    // Streaming API call to backend
+    // Non-streaming API call to backend (consistent with HTML frontend)
     try {
-      const response = await fetch(API_ENDPOINTS.CHAT_STREAM, {
+      const response = await fetch(API_ENDPOINTS.CHAT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: messageContent,
           session_id: sessionId,
-          history: messages.map((m) => ({ role: m.role, content: m.content })),
+          history: messages
+            .filter((m) => m.role !== "assistant" || m.content.trim() !== "")
+            .map((m) => ({ role: m.role, content: m.content })),
         }),
       });
 
@@ -78,81 +80,22 @@ const ChatInterface = ({ sessionId }: ChatInterfaceProps) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+      const data = await response.json();
 
-      if (!reader) {
-        throw new Error("No response body");
+      // Update the message with the full response
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMessageId
+            ? { ...m, content: data.message || "Sorry, I could not process your request." }
+            : m
+        )
+      );
+
+      // Log RAG context for debugging
+      if (data.rag_context) {
+        console.log("📚 RAG Context:", data.rag_context.substring(0, 500));
       }
 
-      // Read the stream
-      let buffer = "";
-
-      // Read the stream
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          // Process any remaining buffer
-          if (buffer.trim()) {
-            const lines = buffer.split("\n");
-            for (const line of lines) {
-              if (line.trim().startsWith("data:")) {
-                processLine(line);
-              }
-            }
-          }
-          break;
-        }
-
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-
-        // Process complete lines
-        const lines = buffer.split("\n");
-        // Keep the last partial line in the buffer
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          processLine(line);
-        }
-      }
-
-      function processLine(line: string) {
-        if (!line.trim() || !line.startsWith("data:")) return;
-
-        try {
-          const jsonStr = line.slice(5).trim(); // Remove "data:" prefix
-          if (!jsonStr) return;
-          if (jsonStr === "[DONE]") return; // Handle standard SSE done signal if present
-
-          const data = JSON.parse(jsonStr);
-
-          if (data.token) {
-            // Update message content with new token
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMessageId
-                  ? { ...m, content: m.content + data.token }
-                  : m
-              )
-            );
-          }
-
-          if (data.error) {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMessageId
-                  ? { ...m, content: m.content + "\n\nError: " + data.error }
-                  : m
-              )
-            );
-          }
-        } catch (parseError) {
-          // Skip malformed JSON lines
-          console.warn("Failed to parse SSE data:", line);
-        }
-      }
     } catch (error) {
       // Update the placeholder message with error
       setMessages((prev) =>

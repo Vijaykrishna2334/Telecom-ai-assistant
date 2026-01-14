@@ -30,7 +30,21 @@ class STTService:
             device: Device to use (cpu, cuda)
         """
         self.model_size = model_size or settings.stt_model
-        self.device = device or settings.stt_device
+        
+        # Auto-detect CUDA availability
+        try:
+            import torch
+            if torch.cuda.is_available():
+                self.device = "cuda"
+                self.compute_type = "float16"  # GPU uses float16 for speed
+                logger.info("CUDA GPU detected for Whisper STT", gpu=torch.cuda.get_device_name(0))
+            else:
+                self.device = "cpu"
+                self.compute_type = "int8"  # CPU uses int8 for efficiency
+        except ImportError:
+            self.device = "cpu"
+            self.compute_type = "int8"
+        
         self.model = None
         self.model_loaded = False
         logger.info("Initializing STT service", model=self.model_size, device=self.device)
@@ -43,8 +57,8 @@ class STTService:
             logger.info("Loading Whisper model...", model=self.model_size, device=self.device)
             self.model = WhisperModel(
                 self.model_size, 
-                device=self.device,
-                compute_type="int8" if self.device == "cpu" else "float16"
+                device=self.device,  # Always CPU
+                compute_type=self.compute_type  # Always int8 for CPU
             )
             self.model_loaded = True
             logger.info("STT model loaded successfully", model=self.model_size)

@@ -52,7 +52,7 @@ class KnowledgeBaseService:
         return await self.retriever.retrieve(query, top_k)
 
     async def get_context_for_query(
-        self, query: str, max_length: int = 2000, conversation_history: list = None
+        self, query: str, max_length: int = 8000, conversation_history: list = None
     ) -> str:
         """
         Get context text for a query using CRAG methodology.

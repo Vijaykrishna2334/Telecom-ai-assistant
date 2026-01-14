@@ -92,6 +92,11 @@ backend/app/services/voice/models/*.onnx
 
 # ChromaDB
 chroma_data/
+chroma_db/
+backend/chroma_db/
+
+# Screenshots (reference only)
+scrren shot/
 
 # Redis
 dump.rdb

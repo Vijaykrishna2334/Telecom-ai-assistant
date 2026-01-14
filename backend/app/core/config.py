@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.2:3b"
+    ollama_model: str = "llama3.1:8b"  # Llama 3.1 8B - Best balance of speed and accuracy (45% test pass rate)
     ollama_timeout: int = 120
     ollama_num_predict: int = 150  # Reduced for faster responses (was 512)
 
@@ -55,32 +55,18 @@ class Settings(BaseSettings):
     # Relevance thresholds for CRAG grading
     crag_relevance_threshold: float = 0.6  # Score above = CORRECT
     crag_ambiguous_threshold: float = 0.3  # Score between = AMBIGUOUS, below = INCORRECT
-    crag_top_k: int = 5  # Number of documents to retrieve
+    crag_top_k: int = 10  # Increased to ensure dedicated data-specific sections are retrieved (10×3000=30k chars ~7500 tokens)
 
     # Voice Processing
     # base.en: Good balance of speed and accuracy (prevents hallucinations)
     # tiny.en was hallucinating, base.en is more reliable
     stt_model: str = "base.en"  
-    stt_device: str = "cuda"  # GPU enabled for faster STT
-    stt_compute_type: str = "float16"  # float16 for GPU (faster than int8)
-    
-    # TTS Configuration
-    # Options: "piper" (stable), "kokoro" (fast), "cosyvoice" (best quality, 150ms latency)
-    # NOTE: Kokoro has compatibility issues with Python 3.12 (spacy/pydantic)
-    tts_provider: str = "kokoro"  # Using Kokoro for faster TTS
-    
-    # Piper TTS settings
-    tts_voice: str = "en_US-ljspeech-high"  # High-quality natural female voice
-    tts_sample_rate: int = 22050
+    stt_device: str = "cpu"  # Switched from cuda - cublas64_12.dll missing
+    stt_compute_type: str = "int8"  # int8 for CPU (float16 only works on GPU)
     
     # Kokoro TTS settings (82M lightweight model)
     kokoro_voice: str = "af_heart"  # American female voice
     kokoro_lang_code: str = "a"  # 'a' = American English
-    
-    # CosyVoice TTS settings (Alibaba FunAudioLLM - 150ms latency)
-    # Models: CosyVoice2-0.5B (latest), CosyVoice-300M
-    cosyvoice_model: str = "CosyVoice2-0.5B"
-    cosyvoice_voice: str = "default"  # Or path to reference audio for cloning
     
     # VAD settings
     vad_threshold: float = 0.85  # Higher threshold = less sensitive to noise (0.0-1.0)

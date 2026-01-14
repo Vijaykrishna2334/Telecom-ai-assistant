@@ -18,6 +18,7 @@ from enum import Enum
 import re
 
 from app.core.logging import get_logger
+from app.core.config import settings
 from app.services.rag.hybrid_retriever import hybrid_retriever
 from app.services.rag.relevance_grader import relevance_grader, RelevanceGrade
 from app.services.rag.embeddings import embedding_service
@@ -55,8 +56,8 @@ class CRAGChain:
 
     def __init__(
         self,
-        top_k: int = 5,
-        max_context_length: int = 2000,
+        top_k: int = 10,
+        max_context_length: int = 8000,
         max_refinement_attempts: int = 1,
     ):
         """
@@ -404,4 +405,4 @@ class CRAGChain:
 
 
 # Global CRAG chain instance
-crag_chain = CRAGChain()
+crag_chain = CRAGChain(top_k=settings.crag_top_k)
