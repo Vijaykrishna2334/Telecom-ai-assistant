@@ -1,0 +1,51 @@
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Local data (will be mounted as volumes)
+chroma_db/
+*.db
+*.sqlite
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Nested deploy folder (if exists)
+deploy-backend/
