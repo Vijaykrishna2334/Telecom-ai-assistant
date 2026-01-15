@@ -11,6 +11,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!telecom-voice-companion-main/src/lib/
 lib64/
 parts/
 sdist/
