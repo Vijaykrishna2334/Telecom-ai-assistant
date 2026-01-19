@@ -58,11 +58,11 @@ class Settings(BaseSettings):
     crag_top_k: int = 10  # Increased to ensure dedicated data-specific sections are retrieved (10×3000=30k chars ~7500 tokens)
 
     # Voice Processing
-    # base.en: Good balance of speed and accuracy (prevents hallucinations)
-    # tiny.en was hallucinating, base.en is more reliable
-    stt_model: str = "base.en"  
-    stt_device: str = "cpu"  # Switched from cuda - cublas64_12.dll missing
-    stt_compute_type: str = "int8"  # int8 for CPU (float16 only works on GPU)
+    # small.en: Better accuracy than base.en (fewer garbage transcriptions)
+    # base.en was producing garbage like "I'm an idiot" instead of actual speech
+    stt_model: str = "small.en"  
+    stt_device: str = "auto"  # "auto" = use CUDA if available, else CPU (auto-detected in stt.py)
+    stt_compute_type: str = "float16"  # float16 for GPU, int8 for CPU (auto-detected)
     
     # Kokoro TTS settings (82M lightweight model)
     kokoro_voice: str = "af_heart"  # American female voice

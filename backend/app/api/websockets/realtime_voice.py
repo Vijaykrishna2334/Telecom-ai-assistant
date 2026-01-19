@@ -53,6 +53,10 @@ class VoiceSession:
     barge_in_detected: bool = False
     history: List[Dict[str, str]] = field(default_factory=list)
     cancel_event: asyncio.Event = field(default_factory=asyncio.Event)
+    consecutive_speech_count: int = 0  # Track consecutive speech detections
+    barge_in_buffer: bytes = b""  # Buffer for barge-in audio validation
+    barge_in_validating: bool = False  # Flag to indicate validation in progress
+    recent_bot_speech: List[str] = field(default_factory=list)  # Track recent bot TTS for echo detection
     
     def __post_init__(self):
         self.cancel_event = asyncio.Event()
@@ -147,6 +151,37 @@ class RealTimeVoiceGateway:
         is_speech = await self._detect_speech(audio_chunk)
         
         if is_speech:
+            # BARGE-IN: Handle speech during bot speaking FIRST (before other logic)
+            if session.state == ConversationState.BOT_SPEAKING:
+                # Collect audio for barge-in validation
+                session.barge_in_buffer += audio_chunk
+                session.consecutive_speech_count += 1
+                
+                # Log every 5 chunks to track progress
+                if session.consecutive_speech_count % 5 == 0:
+                    logger.info("Barge-in progress: %d/15 chunks", session.consecutive_speech_count)
+                
+                # Require 15 consecutive chunks before validating (~1.5s of speech)
+                if session.consecutive_speech_count >= 15 and not session.barge_in_validating:
+                    session.barge_in_validating = True
+                    # Validate if this is real human speech (also checks for echo)
+                    is_real_speech = await self._validate_barge_in_speech(session.barge_in_buffer, session)
+                    
+                    if is_real_speech:
+                        logger.warning("🚨 VALIDATED BARGE-IN - Real speech detected! 🚨", session_id=session.session_id)
+                        await self._handle_barge_in(session)
+                        # Reset only on successful barge-in
+                        session.barge_in_buffer = b""
+                        session.consecutive_speech_count = 0
+                    else:
+                        logger.info("🔇 Barge-in rejected - noise/not human speech", session_id=session.session_id)
+                        # Keep buffer but reset count to try again with more audio
+                        session.consecutive_speech_count = 10  # Wait for 5 more chunks
+                    
+                    session.barge_in_validating = False
+                return  # Don't process further during bot speaking
+            
+            # Normal speech handling (not during bot speaking)
             if not session.is_speech_active:
                 # INFO: Log current state
                 logger.info(
@@ -155,11 +190,6 @@ class RealTimeVoiceGateway:
                     current_state=session.state.value,
                     is_bot_speaking=(session.state == ConversationState.BOT_SPEAKING)
                 )
-                
-                # Check for barge-in BEFORE changing state
-                if session.state == ConversationState.BOT_SPEAKING:
-                    logger.warning("🚨 TRIGGERING BARGE-IN NOW 🚨", session_id=session.session_id)
-                    await self._handle_barge_in(session)
                 
                 # Speech just started
                 session.is_speech_active = True
@@ -172,6 +202,10 @@ class RealTimeVoiceGateway:
             session.silence_start_time = 0
             
         else:
+            # Reset barge-in state on silence (prevents noise accumulation)
+            session.consecutive_speech_count = 0
+            session.barge_in_buffer = b""
+            
             if session.is_speech_active:
                 if session.silence_start_time == 0:
                     session.silence_start_time = current_time
@@ -197,13 +231,104 @@ class RealTimeVoiceGateway:
                     session.silence_start_time = 0
     
     async def _detect_speech(self, audio_chunk: bytes) -> bool:
-        """Detect speech using VAD."""
+        """Detect speech using VAD with energy pre-filter."""
         try:
+            # Add energy check - skip very quiet audio
+            import numpy as np
+            audio_array = np.frombuffer(audio_chunk, dtype=np.int16)
+            energy = np.sqrt(np.mean(audio_array.astype(np.float32) ** 2))
+            
+            # Skip if energy is too low (adjust threshold as needed)
+            # Higher value = less sensitive to background noise
+            if energy < 500:  # Increased from 100 to filter background noise
+                return False
+                
             # Use the voice pipeline's VAD
             return await voice_pipeline.detect_speech(audio_chunk)
         except Exception:
             # If VAD fails, assume speech
             return len(audio_chunk) > 0
+    
+    async def _validate_barge_in_speech(self, audio_buffer: bytes, session: VoiceSession) -> bool:
+        """
+        Validate if the audio contains real human speech before triggering barge-in.
+        Uses quick transcription to check for actual words.
+        Also filters out echo (bot's own speech picked up by microphone).
+        Returns True only if real speech is detected.
+        """
+        try:
+            if len(audio_buffer) < 8000:  # Less than 0.5s of audio
+                return False
+            
+            # Quick transcription check
+            transcript = await voice_pipeline.process_audio_input(audio_buffer)
+            
+            # Log the transcript for debugging
+            logger.info("Barge-in validation transcript: '%s' (buffer size: %d bytes)", 
+                       transcript[:100] if transcript else "[empty]", len(audio_buffer))
+            
+            if not transcript:
+                return False
+            
+            # Clean up the transcript - remove trailing punctuation like "..."
+            clean_text = transcript.strip().lower()
+            clean_text = clean_text.rstrip('.').rstrip(',').rstrip('?').rstrip('!')
+            clean_text = clean_text.strip()
+            
+            # Reject known noise patterns (exact matches only)
+            noise_patterns = [
+                "[no speech detected]", "[empty]", "[music]", "[noise]",
+                "[applause]", "[laughter]", "[background]", "[inaudible]",
+                "[silence]", "(music)", "(noise)", "[blank_audio]"
+            ]
+            
+            # Check for exact matches or if text starts with noise pattern
+            for pattern in noise_patterns:
+                if clean_text == pattern or clean_text.startswith(pattern):
+                    logger.info("Barge-in validation: Noise pattern detected - %s", clean_text)
+                    return False
+            
+            # Check if transcript has real words (at least 2 characters, has letters)
+            if len(clean_text) < 2:
+                logger.info("Barge-in validation: Too short - %s", clean_text)
+                return False
+            
+            # Check for alphabetic content
+            has_letters = any(c.isalpha() for c in clean_text)
+            if not has_letters:
+                logger.info("Barge-in validation: No letters found - %s", clean_text)
+                return False
+            
+            # ECHO DETECTION: Check if transcript matches bot's recent speech
+            if session.recent_bot_speech:
+                for bot_sentence in session.recent_bot_speech:
+                    # Check if the transcript is a substring of what the bot said
+                    if clean_text in bot_sentence:
+                        logger.info("Barge-in REJECTED: Echo detected - '%s' found in bot speech", clean_text)
+                        return False
+                    # Also check if bot sentence words appear in transcript
+                    transcript_words = set(clean_text.split())
+                    bot_words = set(bot_sentence.split())
+                    # If most of the transcript words are from bot's speech, it's echo
+                    overlap = transcript_words.intersection(bot_words)
+                    if len(overlap) >= len(transcript_words) * 0.7:  # 70% overlap = echo
+                        logger.info("Barge-in REJECTED: Echo detected - 70%%+ word overlap with bot speech")
+                        return False
+            
+            # Count all words that contain at least one letter (including "I", "a", etc.)
+            words = [w for w in clean_text.split() if any(c.isalpha() for c in w)]
+            
+            # Require at least 3 words to trigger barge-in
+            if len(words) < 3:
+                logger.info("Barge-in validation: Not enough words (%d/3) - %s", len(words), clean_text)
+                return False
+            
+            logger.info("Barge-in validation: PASSED with %d words: %s", len(words), clean_text[:50])
+            return True
+            
+        except Exception as e:
+            logger.error("Barge-in validation error: %s", str(e))
+            return False
     
     async def _handle_barge_in(self, session: VoiceSession):
         """Handle barge-in (user interrupts bot)."""
@@ -240,8 +365,33 @@ class RealTimeVoiceGateway:
             await self.send_event(session, "processing", {"stage": "transcribing"})
             transcript = await voice_pipeline.process_audio_input(audio_data)
             
-            if not transcript:
-                await self.send_event(session, "error", {"message": "Could not transcribe audio"})
+            # Add validation to filter out non-speech transcriptions
+            if not transcript or len(transcript.strip()) < 2:
+                await self.send_event(session, "transcript", {"text": "I didn't catch that. Please speak again.", "is_final": True})
+                session.state = ConversationState.IDLE
+                return
+            
+            # Check for noise patterns that should not be processed
+            noise_patterns = [
+                "[empty]", "[no speech detected]", "[music]", "[noise]",
+                "[applause]", "[laughter]", "[background", "[inaudible]",
+                "[silence]", "(music)", "(noise)", "...", "[blank_audio]"
+            ]
+            clean_transcript = transcript.strip().lower()
+            
+            # Skip if transcript matches noise patterns
+            for pattern in noise_patterns:
+                if pattern in clean_transcript or clean_transcript == pattern:
+                    logger.info("Skipping noise transcript: %s", transcript)
+                    await self.send_event(session, "transcript", {"text": "I didn't catch that. Please speak again.", "is_final": True})
+                    session.state = ConversationState.IDLE
+                    return
+            
+            # Check if transcript contains actual words (not just noise)
+            words = transcript.strip().split()
+            if len(words) == 0 or not any(len(word) >= 2 and any(c.isalpha() for c in word) for word in words):
+                logger.info("Skipping invalid transcript (no real words): %s", transcript)
+                await self.send_event(session, "transcript", {"text": "I didn't catch that. Please speak again.", "is_final": True})
                 session.state = ConversationState.IDLE
                 return
             
@@ -427,6 +577,12 @@ class RealTimeVoiceGateway:
                        session_id=session.session_id, 
                        index=index, 
                        text=text[:50])
+            
+            # Track bot speech for echo detection
+            session.recent_bot_speech.append(text.lower())
+            # Keep only last 10 sentences
+            if len(session.recent_bot_speech) > 10:
+                session.recent_bot_speech = session.recent_bot_speech[-10:]
             
             audio_data = await voice_pipeline.process_text_output(text)
             
