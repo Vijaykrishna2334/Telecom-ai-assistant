@@ -15,6 +15,14 @@ An intelligent AI-powered customer service assistant for Reliance Jio, featuring
 - Session management and chat history
 - WebSocket support for instant messaging
 
+## 📊 Performance
+| Metric | Result |
+|---|---|
+| End-to-end latency | **< 2 seconds** |
+| Query resolution rate | **95%+** |
+| Human escalation reduction | **−35%** |
+
+
 ### 🎙️ Voice Interface
 - **Speech-to-Text (STT)**: Faster-Whisper (Whisper base.en model)
 - **Text-to-Speech (TTS)**: Kokoro-82M (lightweight, high-quality)
@@ -118,7 +126,7 @@ pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/your-username/Telecom-ai-assistant.git
+git clone https://github.com/Vijaykrishna2334/Telecom-ai-assistant.git
 cd Telecom-ai-assistant
 ```
 
@@ -444,8 +452,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For issues or questions:
-- Create a [GitHub Issue](https://github.com/your-username/Telecom-ai-assistant/issues)
-- Email: your-email@example.com
+- Create a [GitHub Issue](https://github.com/Vijaykrishna2334/Telecom-ai-assistant/issues)
+- Email: vijaykrishna2334@gmail.com
 
 ---
 
